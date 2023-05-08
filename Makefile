@@ -252,32 +252,42 @@ void_pkg: http_start
 	git clone --depth 1 https://github.com/void-linux/void-packages $(void) || exit 0
 	@cd $(void) && ./xbps-src zap && ./xbps-src binary-bootstrap
 
-arcan_git: arcan_build arcan_sign
+arcan_git: | arcan_build arcan_sign
 	@pkill -f -- '$(http_server)'
 	@echo "$${xbps_out}" 
 
-openal: version=$(shell cat $(void)/srcpkgs/arcan/template | grep '_versionOpenal=' | cut -d '=' -f2)
-arcan: version_openal=$(shell cat $(void)/srcpkgs/$(@)/template | grep '_versionOpenal=' | cut -d '=' -f2)
-arcan xarcan acfgfs aclip aloadimage durden: version=$(shell cat $(void)/srcpkgs/$(@)/template | grep 'version=' | cut -d '=' -f2)
+arcan_new: | arcan_build_new arcan_sign
+	@pkill -f -- '$(http_server)'
+	@echo "$${xbps_out}" 
 
-arcan xarcan durden: distfile=$(@)-$(version).tar.gz
+arcan xarcan acfgfs aclip aloadimage durden openal: t=$(@)
+arcan_ciph: t=arcan
+
+openal: version=$(shell cat $(void)/srcpkgs/arcan/template | grep '_versionOpenal=' | cut -d '=' -f2)
+arcan arcan_ciph: version_openal=$(shell cat $(void)/srcpkgs/$(t)/template | grep '_versionOpenal=' | cut -d '=' -f2)
+arcan arcan_ciph xarcan acfgfs aclip aloadimage durden: version=$(shell cat $(void)/srcpkgs/$(t)/template | grep 'version=' | cut -d '=' -f2)
+
+arcan arcan_ciph xarcan durden: distfile=$(t)-$(version).tar.gz
 aclip acfgfs aloadimage: distfile=arcan-$(version).tar.gz
 
-arcan xarcan acfgfs aclip aloadimage durden: commit=HEAD
+arcan arcan_ciph xarcan acfgfs aclip aloadimage durden: commit=HEAD
 #xarcan: commit=30acea8
 
+arcan xarcan durden openal: url_prefix=https://github.com/letoram
+arcan_ciph: url_prefix=https://github.com/cipharius
+
 define git_got
-rm -rf /tmp/$(@)-$(version)* || exit 0
-git clone --depth 1 https://github.com/letoram/$(@) /tmp/$(@)-$(version)
-cd /tmp/$(@)-$(version) && git fetch --depth=1 origin $(commit) && git checkout $(commit)
-rm -rf /tmp/$(@)-$(version)/.git
-cd /tmp && tar cvfz $(@)-$(version).tar.gz $(@)-$(version)
-rm -rf /tmp/$(@)-$(version)
+rm -rf /tmp/$(t)-$(version)* || exit 0
+git clone --depth 1 $(url_prefix)/$(t) /tmp/$(t)-$(version)
+cd /tmp/$(t)-$(version) && git fetch --depth=1 origin $(commit) && git checkout $(commit)
+rm -rf /tmp/$(t)-$(version)/.git
+cd /tmp && tar cvfz $(t)-$(version).tar.gz $(t)-$(version)
+rm -rf /tmp/$(t)-$(version)
 endef
 
 define xbps_edit
-cd $(void)/srcpkgs/$(@) && git checkout HEAD -- template || echo > /dev/null
-cd $(void)/srcpkgs/$(@) && \
+cd $(void)/srcpkgs/$(t) && git checkout HEAD -- template || echo > /dev/null
+cd $(void)/srcpkgs/$(t) && \
 hash=$$(openssl dgst -sha256 /tmp/$(distfile) | cut -d ' ' -f2); \
 sed -i -e "s/revision=.*/revision=$(rev)/" \
 -e '/checksum=".*[^"]$$/N' -e "s/checksum=.*/checksum=$$hash/" \
@@ -286,8 +296,8 @@ echo > /dev/null
 endef
 
 define xbps_edit_arcan
-cd $(void)/srcpkgs/$(@) && git checkout HEAD -- template || echo > /dev/null
-cd $(void)/srcpkgs/$(@) && \
+cd $(void)/srcpkgs/$(t) && git checkout HEAD -- template || echo > /dev/null
+cd $(void)/srcpkgs/$(t) && \
 hash=$$(openssl dgst -sha256 /tmp/$(distfile) | cut -d ' ' -f2); \
 hash_openal=$$(openssl dgst -sha256 /tmp/openal-$(version_openal).tar.gz | cut -d ' ' -f2); \
 sed -i -e "s/revision=.*/revision=$(rev)/" \
@@ -296,14 +306,15 @@ sed -i -e "s/revision=.*/revision=$(rev)/" \
 echo > /dev/null
 endef
 
+define xbps_build
+cd $(void) && ./xbps-src pkg -f $(t)
+endef
+
 arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden
-	@cd $(void) && \
-	./xbps-src pkg -f arcan && \
-	./xbps-src pkg -f xarcan && \
-	./xbps-src pkg -f aloadimage && \
-	./xbps-src pkg -f acfgfs && \
-	./xbps-src pkg -f aclip && \
-	./xbps-src pkg -f durden
+	@echo ok
+
+arcan_build_new: | void_pkg openal arcan_ciph xarcan aclip aloadimage acfgfs durden
+	@echo ok
 
 arcan_sign:
 	@rm -rf /tmp/void.key && openssl genrsa -out /tmp/void.key || echo > /dev/null
@@ -316,24 +327,37 @@ openal:
 arcan:
 	$(git_got)
 	$(xbps_edit_arcan)
-	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
+	$(xbps_build)
+	rm -rf $(void)/hostdir/sources/$(t)* || exit 0
+	rm -rf $(void)/hostdir/sources/openal* || exit 0
+
+arcan_ciph:
+	$(git_got)
+	$(xbps_edit_arcan)
+	$(xbps_build)
+	rm -rf $(void)/hostdir/sources/$(t)* || exit 0
 	rm -rf $(void)/hostdir/sources/openal* || exit 0
 
 xarcan:
 	$(git_got)
 	$(xbps_edit)
-	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
+	$(xbps_build)
+	rm -rf $(void)/hostdir/sources/$(t)* || exit 0
 
 aclip:
 	$(xbps_edit)
+	$(xbps_build)
 
 acfgfs:
 	$(xbps_edit)
+	$(xbps_build)
 
 aloadimage:
 	$(xbps_edit)
+	$(xbps_build)
 
 durden:
 	$(git_got)
 	$(xbps_edit)
-	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
+	$(xbps_build)
+	rm -rf $(void)/hostdir/sources/$(t)* || exit 0
