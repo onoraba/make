@@ -3,6 +3,9 @@ sdir=$(r)/src
 bdir=$(r)/build
 void=$(r)/void-packages
 
+clean:
+	rm -rf $(sdir) $(bdir) $(void)
+
 qemu_%: out=$(r)/$@_$(tag)
 
 define usage
@@ -291,19 +294,19 @@ cd $(void)/srcpkgs/$(t) && \
 hash=$$(openssl dgst -sha256 /tmp/$(distfile) | cut -d ' ' -f2); \
 sed -i -e "s/revision=.*/revision=$(rev)/" \
 -e '/checksum=".*[^"]$$/N' -e "s/checksum=.*/checksum=$$hash/" \
--e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/$(distfile)'|" template || \
-echo > /dev/null
+-e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/$(distfile)'|" \
+-e '/^checksum=.*/a nostrip=1' template
 endef
 
 define xbps_edit_arcan
-cd $(void)/srcpkgs/$(t) && git checkout HEAD -- template || echo > /dev/null
+cd $(void)/srcpkgs/$(t) && git checkout HEAD -- template || exit 0
 cd $(void)/srcpkgs/$(t) && \
 hash=$$(openssl dgst -sha256 /tmp/$(distfile) | cut -d ' ' -f2); \
 hash_openal=$$(openssl dgst -sha256 /tmp/openal-$(version_openal).tar.gz | cut -d ' ' -f2); \
 sed -i -e "s/revision=.*/revision=$(rev)/" \
 -e '/checksum=".*[^"]$$/N' -e "s/checksum=.*/checksum='$$hash $$hash_openal'/" \
--e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/$(distfile) $(http)/openal-$(version_openal).tar.gz'|" template || \
-echo > /dev/null
+-e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/$(distfile) $(http)/openal-$(version_openal).tar.gz'|" \
+-e '/^checksum=.*/a nostrip=1' template
 endef
 
 define xbps_build
