@@ -15,7 +15,8 @@ qemu_min - v2.6.0
 qemu_last - v7.2.0
 qemu_3dfx - v7.2.0 3dfx patch
 qemu_norm - v7.2.0 long term
-arcan_git - built xbps pkgs with git master as source
+arcan_git - built xbps pkgs from git master
+arcan_new - built xbps pkgs from feature/fix branch
 endef
 export usage
 
@@ -248,13 +249,12 @@ http_start:
 
 void_pkg: http_start
 	@test ! -d $(void) && \
-	git clone --depth 1 https://github.com/void-linux/void-packages $(void) || echo > /dev/null
-	@test -d $(void) && \
-	cd $(void) && ./xbps-src zap && ./xbps-src binary-bootstrap || echo > /dev/null
+	git clone --depth 1 https://github.com/void-linux/void-packages $(void) || exit 0
+	@cd $(void) && ./xbps-src zap && ./xbps-src binary-bootstrap
 
-arcan_git: void_pkg arcan_build arcan_sign
+arcan_git: arcan_build arcan_sign
 	@pkill -f -- '$(http_server)'
-	@echo "$$xbps_out" 
+	@echo "$${xbps_out}" 
 
 openal: version=$(shell cat $(void)/srcpkgs/arcan/template | grep '_versionOpenal=' | cut -d '=' -f2)
 arcan: version_openal=$(shell cat $(void)/srcpkgs/$(@)/template | grep '_versionOpenal=' | cut -d '=' -f2)
@@ -267,11 +267,12 @@ arcan xarcan acfgfs aclip aloadimage durden: commit=HEAD
 #xarcan: commit=30acea8
 
 define git_got
-rm -rf /tmp/$(@)-$(version)* || echo > /dev/null 
+rm -rf /tmp/$(@)-$(version)* || exit 0
 git clone --depth 1 https://github.com/letoram/$(@) /tmp/$(@)-$(version)
-cd /tmp/$(@)-$(version) && git fetch --depth=1 origin $(commit) && git checkout $(commit) || echo > /dev/null
+cd /tmp/$(@)-$(version) && git fetch --depth=1 origin $(commit) && git checkout $(commit)
 rm -rf /tmp/$(@)-$(version)/.git
 cd /tmp && tar cvfz $(@)-$(version).tar.gz $(@)-$(version)
+rm -rf /tmp/$(@)-$(version)
 endef
 
 define xbps_edit
@@ -295,7 +296,7 @@ sed -i -e "s/revision=.*/revision=$(rev)/" \
 echo > /dev/null
 endef
 
-arcan_build: durden aclip acfgfs aloadimage xarcan arcan
+arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden
 	@cd $(void) && \
 	./xbps-src pkg -f arcan && \
 	./xbps-src pkg -f xarcan && \
@@ -304,35 +305,35 @@ arcan_build: durden aclip acfgfs aloadimage xarcan arcan
 	./xbps-src pkg -f aclip && \
 	./xbps-src pkg -f durden
 
-arcan_sign: arcan_build
+arcan_sign:
 	@rm -rf /tmp/void.key && openssl genrsa -out /tmp/void.key || echo > /dev/null
 	@xbps-rindex --sign --signedby void --privkey /tmp/void.key $(void)/hostdir/binpkgs
 	@xbps-rindex --sign-pkg --privkey /tmp/void.key $(void)/hostdir/binpkgs/*.xbps
 
-openal: void_pkg
+openal:
 	$(git_got)
 
-arcan: void_pkg openal
+arcan:
 	$(git_got)
 	$(xbps_edit_arcan)
-	@cd $(void) && rm -rf hostdir/sources/$(@)* || echo > /dev/null
-	@cd $(void) && rm -rf hostdir/sources/openal* || echo > /dev/null
+	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
+	rm -rf $(void)/hostdir/sources/openal* || exit 0
 
-xarcan: arcan
+xarcan:
 	$(git_got)
 	$(xbps_edit)
-	@cd $(void) && rm -rf hostdir/sources/$(@)* || echo > /dev/null
+	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
 
-aclip: xarcan
+aclip:
 	$(xbps_edit)
 
-acfgfs: aclip
+acfgfs:
 	$(xbps_edit)
 
-aloadimage: acfgfs
+aloadimage:
 	$(xbps_edit)
 
-durden: aloadimage
+durden:
 	$(git_got)
 	$(xbps_edit)
-	@cd $(void) && rm -rf hostdir/sources/$(@)* || echo > /dev/null
+	rm -rf $(void)/hostdir/sources/$(@)* || exit 0
