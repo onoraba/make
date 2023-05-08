@@ -3,25 +3,13 @@ sdir=$(r)/src
 bdir=$(r)/build
 void=$(r)/void-packages
 
+all:
+	@cat README.md
+
 clean:
 	rm -rf $(sdir) $(bdir) $(void)
 
 qemu_%: out=$(r)/$@_$(tag)
-
-define usage
-targets:
-qemu_arcan - arcan patch
-qemu_arcan6 - v6.2.0 arcan patch, no submodules patched
-qemu_arcan7 - v7.2.0 arcan patch, no submodules patched
-qemu_arcan_fork7 - v7.2.0 cipharius arcan patch
-qemu_min - v2.6.0
-qemu_last - v7.2.0
-qemu_3dfx - v7.2.0 3dfx patch
-qemu_norm - v7.2.0 long term
-arcan_git - built xbps pkgs from git master
-arcan_new - built xbps pkgs from feature/fix branch
-endef
-export usage
 
 define xbps_out
 ############
@@ -30,9 +18,6 @@ xbps-remove -y acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan
 xbps-install --repository=$(void)/hostdir/binpkgs acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan
 endef
 export xbps_out
-
-all:
-	@echo "$$usage" 
 
 # libXxf86vm-devel for 3dfx
 ifeq ($(shell test -e /sbin/xbps-install && echo -n yes),yes)
@@ -263,21 +248,21 @@ arcan_new: | arcan_build_new arcan_sign
 	@pkill -f -- '$(http_server)'
 	@echo "$${xbps_out}" 
 
-arcan xarcan acfgfs aclip aloadimage durden openal: t=$(@)
+arcan xarcan acfgfs aclip aloadimage durden openal kakoune-arcan: t=$(@)
 arcan_ciph: t=arcan
 
 openal: version=$(shell cat $(void)/srcpkgs/arcan/template | grep '_versionOpenal=' | cut -d '=' -f2)
 arcan arcan_ciph: version_openal=$(shell cat $(void)/srcpkgs/$(t)/template | grep '_versionOpenal=' | cut -d '=' -f2)
-arcan arcan_ciph xarcan acfgfs aclip aloadimage durden: version=$(shell cat $(void)/srcpkgs/$(t)/template | grep 'version=' | cut -d '=' -f2)
+arcan arcan_ciph xarcan acfgfs aclip aloadimage durden kakoune-arcan: version=$(shell cat $(void)/srcpkgs/$(t)/template | grep 'version=' | cut -d '=' -f2)
 
-arcan arcan_ciph xarcan durden: distfile=$(t)-$(version).tar.gz
+arcan arcan_ciph xarcan durden kakoune-arcan: distfile=$(t)-$(version).tar.gz
 aclip acfgfs aloadimage: distfile=arcan-$(version).tar.gz
 
-arcan arcan_ciph xarcan acfgfs aclip aloadimage durden: commit=HEAD
+arcan arcan_ciph xarcan acfgfs aclip aloadimage durden kakoune-arcan: commit=HEAD
 #xarcan: commit=30acea8
 
 arcan xarcan durden openal: url_prefix=https://github.com/letoram
-arcan_ciph: url_prefix=https://github.com/cipharius
+arcan_ciph kakoune-arcan: url_prefix=https://github.com/cipharius
 
 define git_got
 rm -rf /tmp/$(t)-$(version)* || exit 0
@@ -313,10 +298,10 @@ define xbps_build
 cd $(void) && ./xbps-src pkg -f $(t)
 endef
 
-arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden
+arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden kakoune-arcan
 	@echo ok
 
-arcan_build_new: | void_pkg openal arcan_ciph xarcan aclip aloadimage acfgfs durden
+arcan_build_new: | void_pkg openal arcan_ciph xarcan aclip aloadimage acfgfs durden kakoune-arcan
 	@echo ok
 
 arcan_sign:
@@ -364,3 +349,37 @@ durden:
 	$(xbps_edit)
 	$(xbps_build)
 	rm -rf $(void)/hostdir/sources/$(t)* || exit 0
+
+# kakoune
+
+aka_version=0.1
+define aka_xbps_template
+# Template file for 'kakoune-arcan'
+pkgname=kakoune-arcan
+version=$(aka_version)
+revision=6
+build_style=zig-build
+hostmakedepends="pkg-config arcan"
+makedepends="arcan-devel"
+short_desc="Native arcan frontend for kakoune text editor"
+maintainer="null"
+license="MIT"
+homepage="https://github.com/cipharius/kakoune-arcan"
+distfiles=""
+checksum=""
+
+post_install() {
+        vlicense LICENSE
+}
+endef
+export aka_xbps_template
+
+kakoune-arcan: aka_xbps
+	$(git_got)
+	$(xbps_edit)
+	$(xbps_build)
+
+aka_xbps: dir=$(void)/srcpkgs/kakoune-arcan
+aka_xbps:
+	@test ! -d $(dir) && mkdir $(dir) || exit 0
+	@echo "$${aka_xbps_template}" > $(dir)/template
