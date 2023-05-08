@@ -14,8 +14,8 @@ qemu_%: out=$(r)/$@_$(tag)
 define xbps_out
 ############
 run as root:
-xbps-remove -y acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan
-xbps-install --repository=$(void)/hostdir/binpkgs acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan
+xbps-remove -y acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan kakoune-arcan
+xbps-install --repository=$(void)/hostdir/binpkgs acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan kakoune-arcan
 endef
 export xbps_out
 
