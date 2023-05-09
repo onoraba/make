@@ -1,4 +1,6 @@
-r=/home/user
+SHELL = /bin/sh
+
+r=$(HOME)
 sdir=$(r)/src
 bdir=$(r)/build
 void=$(r)/void-packages
@@ -383,3 +385,24 @@ aka_xbps: dir=$(void)/srcpkgs/kakoune-arcan
 aka_xbps:
 	@test ! -d $(dir) && mkdir $(dir) || exit 0
 	@echo "$${aka_xbps_template}" > $(dir)/template
+
+# qemu xbps with arcan patch
+
+qemu-arcan: qemu=https://github.com/qemu/qemu
+qemu-arcan: arcan=https://github.com/cipharius/qemu
+qemu-arcan: dir=$(sdir)/qemu_
+qemu-arcan: tag=v7.2.0
+qemu-arcan: patch=$(arcan)
+
+qemu-arcan:
+	@test -d $(dir)_qemu && rm -rf $(dir)_qemu || exit 0
+	@test -d $(dir)_arcan && rm -rf $(dir)_arcan || exit 0
+	@git clone -b $(tag) --depth 1 $(qemu) $(dir)_qemu
+	@git clone --depth 30 $(arcan) $(dir)_arcan
+	@cd $(dir)_arcan; \
+	count=$$(git log --pretty=%H --author=cipharius | wc -l); \
+	last=$$(git log --pretty=%H | head -n $$(echo $${count}+1 | bc) | tail -n 1); \
+	git diff $${last} HEAD -- . ':!meson' ':!dtc' ':!ui/keycodemapdb' ':!slirp' \
+	> $(dir)_qemu/arcan.patch; \
+	git format-patch -n --stdout --ignore-submodules=all $${last}..HEAD > $(dir)_qemu/a.patch
+	@cd $(dir)_qemu; patch -p1 -i arcan.patch
