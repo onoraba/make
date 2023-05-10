@@ -9,7 +9,8 @@ all:
 	@cat README.md
 
 clean:
-	rm -rf $(sdir) $(bdir) $(void)
+	@rm -rf $(sdir) $(bdir) $(void)
+	@mkdir $(sdir)
 
 qemu_%: out=$(r)/$@_$(tag)
 
@@ -17,7 +18,7 @@ define xbps_out
 ############
 run as root:
 xbps-remove -y acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan kakoune-arcan
-xbps-install --repository=$(void)/hostdir/binpkgs acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan kakoune-arcan
+xbps-install --repository=$(void)/hostdir/binpkgs acfgfs aclip aloadimage arcan arcan-devel arcan_sdl durden xarcan kakoune-arcan qemu qemu-ga
 endef
 export xbps_out
 
@@ -300,10 +301,10 @@ define xbps_build
 cd $(void) && ./xbps-src pkg -f $(t)
 endef
 
-arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden kakoune-arcan
+arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden kakoune-arcan qemu-arcan
 	@echo ok
 
-arcan_build_new: | void_pkg openal arcan_ciph xarcan aclip aloadimage acfgfs durden kakoune-arcan
+arcan_build_new: | void_pkg openal arcan_ciph xarcan aclip aloadimage acfgfs durden kakoune-arcan qemu-arcan
 	@echo ok
 
 arcan_sign:
@@ -390,19 +391,29 @@ aka_xbps:
 
 qemu-arcan: qemu=https://github.com/qemu/qemu
 qemu-arcan: arcan=https://github.com/cipharius/qemu
-qemu-arcan: dir=$(sdir)/qemu_
-qemu-arcan: tag=v7.2.0
-qemu-arcan: patch=$(arcan)
+qemu-arcan: tag=v8.0.0
+qemu-arcan: ver=$(shell echo $(tag) | tr -d 'v')
+qemu-arcan: file=qemu-$(ver).tar.xz
+qemu-arcan: dir=$(sdir)/qemu-$(ver)
 
 qemu-arcan:
-	@test -d $(dir)_qemu && rm -rf $(dir)_qemu || exit 0
-	@test -d $(dir)_arcan && rm -rf $(dir)_arcan || exit 0
-	@git clone -b $(tag) --depth 1 $(qemu) $(dir)_qemu
-	@git clone --depth 30 $(arcan) $(dir)_arcan
-	@cd $(dir)_arcan; \
-	count=$$(git log --pretty=%H --author=cipharius | wc -l); \
-	last=$$(git log --pretty=%H | head -n $$(echo $${count}+1 | bc) | tail -n 1); \
-	git diff $${last} HEAD -- . ':!meson' ':!dtc' ':!ui/keycodemapdb' ':!slirp' \
-	> $(dir)_qemu/arcan.patch; \
-	git format-patch -n --stdout --ignore-submodules=all $${last}..HEAD > $(dir)_qemu/a.patch
-	@cd $(dir)_qemu; patch -p1 -i arcan.patch
+	@test -e $(sdir)/$(file) && exit 0 || \
+	curl -k https://download.qemu.org/$(file) -o $(sdir)/$(file)
+	@rm -rf $(dir) || exit 0
+	@cd $(sdir); tar xfJ $(file)
+	@cp qemu-arcan.$(tag).patch $(dir)
+	@patch -d $(dir) -p1 -i qemu-arcan.$(tag).patch
+	@cd $(sdir); tar cfz /tmp/qemu-$(ver).tar.gz qemu-$(ver)
+	@cd $(void)/srcpkgs/qemu && git checkout HEAD -- template || exit 0
+	@hash=$$(openssl dgst -sha256 /tmp/qemu-$(ver).tar.gz | cut -d ' ' -f2); \
+	sed -i -e "s/revision=.*/revision=7/" \
+	-e "s/version=.*/version=$(ver)/" \
+	-e '/checksum=".*[^"]$$/N' -e "s/checksum=.*/checksum=$${hash}/" \
+	-e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/qemu-$(ver).tar.gz'|" \
+	-e 's/^nostrip_files="\(.*\)/nostrip_files="qemu-system-x86_64 \1/' \
+	-e 's/^hostmakedepends="\(.*\)/hostmakedepends="arcan \1/' \
+	-e 's/^makedepends="\(.*\)/makedepends="arcan-devel flex \1/' \
+	-e 's/^build_options="\(.*\) spice \(.*\)/build_options="\1 \2/' \
+	-e 's/^configure_args="\(.*\)/configure_args="--enable-arcan \1/' $(void)/srcpkgs/qemu/template
+	@rm -rf $(void)/srcpkgs/qemu/patches || exit 0
+	@cd $(void); ./xbps-src pkg -f qemu

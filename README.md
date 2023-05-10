@@ -7,5 +7,5 @@
 - qemu_last - v7.2.0
 - qemu_3dfx - v7.2.0 3dfx patch
 - qemu_norm - v7.2.0 long term
-- arcan_git - xbps for arcan kakoune-arcan
-- arcan_new - xbps from arcan pull and kakoune-arcan
+- arcan_git - xbps for arcan kakoune-arcan and qemu-arcan
+- arcan_new - same as git, but with pull request ver
