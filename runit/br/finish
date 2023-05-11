@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+srv=$(basename ${PWD})
+bridge=$(echo ${srv} | cut -d '_' -f2)
+dev=$(echo ${srv} | cut -d '_' -f3) # d1:d2:d3 for many
+
+test -z ${bridge} && bridge="out" # default
+
+ip -4 addr flush dev ${bridge}
+ip -6 addr flush dev ${bridge}
+
+test ! -z ${dev} && test ${dev} != "null" && \
+ip link set ${dev} nomaster && \
+ip link set ${dev} down
+
+ip link set ${bridge} down
+ip link del ${bridge}

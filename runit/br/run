@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+
+srv=$(basename ${PWD})
+bridge=$(echo ${srv} | cut -d '_' -f2)
+dev=$(echo ${srv} | cut -d '_' -f3) # d1:d2:d3 for many
+vlan=$(echo ${srv} | rev | cut -d '_' -f1 | rev) # self vlan
+
+devs() {
+ find /sys/class/net \
+ -mindepth 1 \
+ -maxdepth 1 \
+ -lname '*virtual*' \
+ -prune -o \
+ -exec sh -c "test -d {}/wireless && echo {},wifi || echo {},eth" \;
+}
+
+max_vlans=1024
+
+test -z ${bridge} && bridge="out" # default
+
+ip link add name ${bridge} type bridge
+
+test ! -z ${dev} && test ${dev} != "null" && \
+ip -4 addr flush dev ${dev} && \
+ip -6 addr flush dev ${dev} && \
+ip link set ${dev} up && \
+ip link set ${dev} master ${bridge} && \
+bridge vlan add dev ${dev} vid 1-${max_vlans} tagged master || \
+bridge vlan add dev ${bridge} vid 1-${max_vlans} self tagged
+
+ip link set ${bridge} type bridge vlan_filtering 1
+
+echo ${vlan} | egrep -q '^[0-9]+$' && \
+bridge vlan del dev ${bridge} vid 1 self && \
+bridge vlan del dev ${dev} vid 1 untagged && \
+bridge vlan add dev ${bridge} vid ${vlan} self pvid untagged
+
+ip link set ${bridge} up
+
+sleep infinity
