@@ -71,7 +71,19 @@ define qemu_min_opts
 --disable-guest-agent
 endef
 
-#qemu_arcan: arcan_pkg
+# 3dfx 
+define qemu_opts_min
+--disable-werror \
+--disable-virglrenderer \
+--enable-sdl \
+--disable-gtk \
+--disable-opengl \
+--disable-curses \
+--disable-spice \
+--disable-spice-protocol \
+--disable-guest-agent
+endef
+
 qemu_arcan: git=https://github.com/letoram/qemu
 qemu_arcan: tag=master
 qemu_arcan: qemu_targets=x86_64-softmmu
@@ -258,6 +270,9 @@ openal: version=$(shell cat $(void)/srcpkgs/arcan/template | grep '_versionOpena
 arcan arcan_ciph: version_openal=$(shell cat $(void)/srcpkgs/$(t)/template | grep '_versionOpenal=' | cut -d '=' -f2)
 arcan arcan_ciph xarcan acfgfs aclip aloadimage durden kakoune-arcan: version=$(shell cat $(void)/srcpkgs/$(t)/template | grep 'version=' | cut -d '=' -f2)
 
+arcan arcan_ciph acfgfs aclip aloadimage durden kakoune-arcan: src_edit=exit 0
+xarcan: src_edit=sed -i -e "/add_project_arguments.*/a add_project_arguments('-g', language : 'c')" /tmp/$(t)-$(version)/meson.build
+
 arcan arcan_ciph xarcan durden kakoune-arcan: distfile=$(t)-$(version).tar.gz
 aclip acfgfs aloadimage: distfile=arcan-$(version).tar.gz
 
@@ -272,6 +287,7 @@ rm -rf /tmp/$(t)-$(version)* || exit 0
 git clone --depth 1 $(url_prefix)/$(t) /tmp/$(t)-$(version)
 cd /tmp/$(t)-$(version) && git fetch --depth=1 origin $(commit) && git checkout $(commit)
 rm -rf /tmp/$(t)-$(version)/.git
+$(src_edit)
 cd /tmp && tar cvfz $(t)-$(version).tar.gz $(t)-$(version)
 rm -rf /tmp/$(t)-$(version)
 endef
