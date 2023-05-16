@@ -72,7 +72,7 @@ define qemu_min_opts
 endef
 
 # 3dfx 
-define qemu_opts_min
+define qemu_opts_3dfx
 --disable-werror \
 --disable-virglrenderer \
 --enable-sdl \
@@ -129,7 +129,7 @@ qemu_last: patch=echo > /dev/null
 qemu_3dfx: git=https://github.com/qemu/qemu
 qemu_3dfx: tag=v7.2.0
 qemu_3dfx: qemu_targets=x86_64-softmmu
-qemu_3dfx: qemu_opts=$(qemu_opts_min)
+qemu_3dfx: qemu_opts=$(qemu_opts_3dfx)
 qemu_3dfx: python=/sbin/python3
 qemu_3dfx: patch=$(3dfx)
 
@@ -171,6 +171,8 @@ git clone https://github.com/kjliew/qemu-3dfx.git $(sdir)/qemu-3dfx || echo > /d
 rsync -v -r $(sdir)/qemu-3dfx/qemu-0/hw/3dfx $(bdir)/$@_$(tag)/hw && \
 rsync -v -r $(sdir)/qemu-3dfx/qemu-1/hw/mesa $(bdir)/$@_$(tag)/hw && \
 patch -d $(bdir)/$@_$(tag) -p0 -i $(sdir)/qemu-3dfx/00-qemu720-mesa-glide.patch
+cp $(sdir)/qemu-3dfx/scripts/sign_commit $(bdir)/$@_$(tag)/
+cd $(bdir)/$@_$(tag)/ && bash sign_commit
 endef
 
 # git diff --no-index -- old new
