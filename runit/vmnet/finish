@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+srv=$(basename ${PWD})
+scut() { echo ${srv} | cut -d '_' -f${1}; };
+
+bridge=$(scut 2);   test ${bridge} = ${srv} && bridge="out" && srv="${srv}_out"
+max_vlan=$(scut 3); test -z ${max_vlan}     && max_vlan=250
+max_tt=$(scut 4);   test -z ${max_tt}       && max_tt=2
+
+for v in $(seq ${max_vlan}); do
+ for i in $(seq ${max_tt}); do
+  tt="${bridge}_v${v}_i${i}"
+  ip tuntap del name ${tt} mode tap
+ done
+done

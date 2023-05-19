@@ -22,3 +22,8 @@ ln -s /etc/sv/br_out_enp89s0_202 /var/service/br
 cp -r dhcp /etc/sv/dhcp_out
 ln -s /etc/sv/dhcp_out /var/service/dhcp
 ```
+- vmnet - create n tuntaps per vlan on bridge  
+```
+cp -r vmnet /etc/sv/vmnet_out_250_2_user_aabb0
+ln -s /etc/sv/vmnet_out_250_2_user_aabb0 /var/service/vmnet
+```
