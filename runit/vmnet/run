@@ -23,7 +23,7 @@ for v in $(seq ${max_vlan}); do
   ip link set ${tt} master ${bridge}
   bridge vlan del dev ${tt} vid 1
   bridge vlan add dev ${tt} vid ${v} pvid untagged master
-  bridge vlan add dev ${tt} vid ${v} master
+  bridge vlan add dev ${bridge} vid ${v} master
  done
 done
 
