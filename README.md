@@ -27,3 +27,10 @@ ln -s /etc/sv/dhcp_out /var/service/dhcp
 cp -r vmnet /etc/sv/vmnet_out_250_2_user_aabb0
 ln -s /etc/sv/vmnet_out_250_2_user_aabb0 /var/service/vmnet
 ```
+
+## qemu from make
+- alpine in any vlan and bridge
+```
+v=3 make alpine
+b=br0 v=5 make alpine
+```
