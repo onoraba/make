@@ -12,6 +12,7 @@ mac_prefix=$(scut 6); test -z ${mac_prefix}   && mac_prefix="aabb0"
 ip -br link show ${bridge} || exit 1
 
 for v in $(seq ${max_vlan}); do
+ bridge vlan add dev ${bridge} vid ${v} master
  for i in $(seq ${max_tt}); do
   tt="${bridge}_v${v}_i${i}"
   ip tuntap add name ${tt} mode tap user ${user}
@@ -23,7 +24,6 @@ for v in $(seq ${max_vlan}); do
   ip link set ${tt} master ${bridge}
   bridge vlan del dev ${tt} vid 1
   bridge vlan add dev ${tt} vid ${v} pvid untagged master
-  bridge vlan add dev ${bridge} vid ${v} master
  done
 done
 
