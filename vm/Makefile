@@ -5,17 +5,19 @@ SHELL = /bin/sh
 # display
 d ?= $(shell pgrep arcan >/dev/null && echo arcan || echo none)
 
-# bridge, vlan, audio backend, memory, disk size
+# bridge, vlan, audio backend, memory, disk size, snapshot
 b ?= out
 v ?= 230
 a ?= none
 m ?= 256
 s ?= 5G
+snap ?= $(shell date +%Y%m%d)
+u ?= -snapshot
 
 vm = /home/user/vm
 
 serial_stdio1 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
-serial_stdio2 = -serial mon:stdio
+serial = -serial mon:stdio
 
 mikrotik: disk = /vms/disks/chr-7.9.1.qcow2
 
@@ -46,42 +48,66 @@ endef
 ifname ?= $(shell $(get_tt))
 
 init:
-	test ! -d $(vm) && \
-	mkdir -p $(vm)/iso $(vm)/data $(vm)/tmp
+	@test ! -d $(vm) && \
+	mkdir -p $(vm)/iso $(vm)/data $(vm)/tmp || \
+	exit 0
 
-alpine: version = 3.18.0
-alpine: data = $(vm)/data/alpine-$(version).qcow2
-alpine: version_short = v$(shell echo $(version) | cut -d'.' -f1,2)
-alpine: iso_file = alpine-standard-$(version)-x86_64.iso
-alpine: iso_uri = https://dl-cdn.alpinelinux.org/alpine/$(version_short)/releases/x86_64/$(iso_file)
-alpine: iso = $(vm)/iso/$(iso_file)
+alpine_%: version = 3.18.0
+alpine_%: version_short = v$(shell echo $(version) | cut -d'.' -f1,2)
+alpine_%: type = $(shell echo $(@) | cut -d'_' -f2)
+alpine_%: iso_file = alpine-$(type)-$(version)-x86_64.iso
+alpine_%: data = $(vm)/data/$(iso_file).qcow2
+alpine_%: iso_uri = https://dl-cdn.alpinelinux.org/alpine/$(version_short)/releases/x86_64/$(iso_file)
+alpine_%: iso = $(vm)/iso/$(iso_file)
 
-alpine_init:
-	test ! -s $(iso) && curl -o $(iso) $(iso_uri)
-	test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s)
+ros ros%: version = 7.9.1
+ros ros%: data = $(vm)/data/chr-$(version).qcow2
+ros%: data_tmp = $(vm)/data/chr-$(version).img
+ros%: data_uri = https://download.mikrotik.com/routeros/$(version)/chr-$(version).img.zip
 
-alpine: | init alpine_init
-	@qemu-system-x86_64 -nodefaults \
-	-machine q35,usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
-	-cpu kvm64 -smp 1 -m $(m) -accel kvm \
-	-display $(d) \
-	$(serial_stdio2) \
-	-drive file=$(iso),index=1,media=cdrom -boot d \
-	-netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=,netdev=net,mac=$(mac) \
-	$(random_src) \
-	-drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root \
-	-audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound \
-	-device usb-ehci,id=usb \
-	-device usb-kbd,bus=usb.0 \
-	-device usb-tablet,bus=usb.0 \
-	-snapshot
+%: netrom =
+%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root
+%: cdrom_boot = -drive file=$(iso),index=1,media=cdrom -boot d
 
-mikrotik:
-	@qemu-system-x86_64 -nodefaults \
-	-machine q35,usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
-	-cpu kvm64 -smp 1 -m $(m) -accel kvm \
-	-display $(d) \
-	$(serial_stdio2) \
-	-netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=,netdev=net,mac=$(mac) \
-	$(storage) \
-	-snapshot
+define qemu
+ qemu-system-x86_64 -nodefaults \
+ -machine q35,usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
+ -cpu kvm64 -smp 1 -m $(m) -accel kvm \
+ -display $(d) \
+ -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
+ -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound \
+ -device usb-ehci,id=usb \
+ -device usb-kbd,bus=usb.0 \
+ -device usb-tablet,bus=usb.0
+endef
+
+alpine_%: run = $(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src)
+
+%_iso:
+	@test ! -s $(iso) && curl -o $(iso) $(iso_uri) || exit 0
+
+%_data:
+	@test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s) || exit 0
+
+ros_data:
+	@test ! -s $(data) && curl -o $(data_tmp).zip $(data_uri) && \
+	unzip -u $(data_tmp).zip -d $(vm)/data/ && \
+	qemu-img convert -f raw -O qcow2 $(data_tmp) $(data) || exit 0
+
+%_standard %_virt %_extended %_netboot:
+	@$(run) $(u)
+
+alpines: | init alpine_standard_data alpine_standard_iso alpine_standard
+	@exit 0
+
+alpinev: | init alpine_virt_data alpine_virt_iso alpine_virt
+	@exit 0
+
+alpinee: | init alpine_extended_data alpine_extended_iso alpine_extended
+	@exit 0
+
+alpinen: | init alpine_netboot_data alpine_netboot_iso alpine_netboot
+	@exit 0
+
+ros: ros_data
+	@$(qemu) $(storage) $(serial) $(u)
