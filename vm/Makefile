@@ -2,20 +2,20 @@ SHELL = /bin/sh
 
 %: .PHONY
 
+# display
 d ?= $(shell pgrep arcan >/dev/null && echo arcan || echo none)
 
-# bridge, vlan, audio backend, memory
+# bridge, vlan, audio backend, memory, disk size
 b ?= out
 v ?= 230
 a ?= none
-m = 256
+m ?= 256
+s ?= 5G
+
+vm = /home/user/vm
 
 serial_stdio1 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
 serial_stdio2 = -serial mon:stdio
-
-alpine: disk = /vms/disks/alpine.qcow2
-alpine: iso = /vms/iso/alpine-standard-3.18.0-x86_64.iso
-alpine: iso2 = /vms/iso/alpine-virt-3.17.3-x86_64.iso
 
 mikrotik: disk = /vms/disks/chr-7.9.1.qcow2
 
@@ -45,16 +45,31 @@ endef
 
 ifname ?= $(shell $(get_tt))
 
-alpine:
+init:
+	test ! -d $(vm) && \
+	mkdir -p $(vm)/iso $(vm)/data $(vm)/tmp
+
+alpine: version = 3.18.0
+alpine: data = $(vm)/data/alpine-$(version).qcow2
+alpine: version_short = v$(shell echo $(version) | cut -d'.' -f1,2)
+alpine: iso_file = alpine-standard-$(version)-x86_64.iso
+alpine: iso_uri = https://dl-cdn.alpinelinux.org/alpine/$(version_short)/releases/x86_64/$(iso_file)
+alpine: iso = $(vm)/iso/$(iso_file)
+
+alpine_init:
+	test ! -s $(iso) && curl -o $(iso) $(iso_uri)
+	test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s)
+
+alpine: | init alpine_init
 	@qemu-system-x86_64 -nodefaults \
 	-machine q35,usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
 	-cpu kvm64 -smp 1 -m $(m) -accel kvm \
 	-display $(d) \
 	$(serial_stdio2) \
-	$(cdrom_boot) \
+	-drive file=$(iso),index=1,media=cdrom -boot d \
 	-netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=,netdev=net,mac=$(mac) \
 	$(random_src) \
-	$(storage) \
+	-drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root \
 	-audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound \
 	-device usb-ehci,id=usb \
 	-device usb-kbd,bus=usb.0 \
