@@ -14,7 +14,7 @@ s ?= 5G
 snap ?= $(shell date +%Y%m%d)
 u ?= -snapshot
 
-vm = /home/user/vm
+vm = $(HOME)/vm
 
 serial2 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
 serial = -serial mon:stdio
@@ -150,5 +150,11 @@ freebsd: | init freebsd_data
 dragonflybsd: | init dragonflybsd_data
 	@$(qemu) $(storage) $(serial) $(u)
 
-dfly: dragonflybsd
+dfly dbsd: dragonflybsd
+	@exit 0
+
+nbsd: netbsd
+	@exit 0
+
+fbsd: freebsd
 	@exit 0
