@@ -16,15 +16,10 @@ u ?= -snapshot
 
 vm = /home/user/vm
 
-serial_stdio1 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
+serial2 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
 serial = -serial mon:stdio
 
-mikrotik: disk = /vms/disks/chr-7.9.1.qcow2
-
 storage = -drive id=root,file=$(disk),index=0,media=disk,if=none -device virtio-blk-pci,drive=root
-
-cdrom = -drive file=$(iso),index=1,media=cdrom
-cdrom_boot = $(cdrom) -boot d
 
 # utf8 or long names problems with filenames in os
 dir = /home/user/fat
@@ -81,8 +76,6 @@ define qemu
  -device usb-tablet,bus=usb.0
 endef
 
-alpine_%: run = $(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src)
-
 %_iso:
 	@test ! -s $(iso) && curl -o $(iso) $(iso_uri) || exit 0
 
@@ -94,8 +87,8 @@ ros_data:
 	unzip -u $(data_tmp).zip -d $(vm)/data/ && \
 	qemu-img convert -f raw -O qcow2 $(data_tmp) $(data) || exit 0
 
-%_standard %_virt %_extended %_netboot:
-	@$(run) $(u)
+alpine_standard alpine_virt alpine_extended alpine_netboot:
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(u)
 
 alpines: | init alpine_standard_data alpine_standard_iso alpine_standard
 	@exit 0
@@ -109,5 +102,5 @@ alpinee: | init alpine_extended_data alpine_extended_iso alpine_extended
 alpinen: | init alpine_netboot_data alpine_netboot_iso alpine_netboot
 	@exit 0
 
-ros: ros_data
+ros: | init ros_data
 	@$(qemu) $(storage) $(serial) $(u)
