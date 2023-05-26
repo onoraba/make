@@ -60,20 +60,44 @@ ros ros%: data = $(vm)/data/chr-$(version).qcow2
 ros%: data_tmp = $(vm)/data/chr-$(version).img
 ros%: data_uri = https://download.mikrotik.com/routeros/$(version)/chr-$(version).img.zip
 
+openbsd openbsd%: version = 7.3
+openbsd openbsd%: version_short = $(shell echo $(version) | tr -d '.')
+openbsd openbsd%: data = $(vm)/data/openbsd-$(version).qcow2
+openbsd openbsd%: iso_file = cd$(version_short).iso
+openbsd%: iso_uri = https://cdn.openbsd.org/pub/OpenBSD/$(version)/amd64/$(iso_file)
+openbsd openbsd%: iso = $(vm)/iso/$(iso_file)
+
+netbsd netbsd%: version = 9.3
+netbsd netbsd%: data = $(vm)/data/netbsd-$(version).qcow2
+netbsd%: iso_uri = https://cdn.netbsd.org/pub/NetBSD/NetBSD-$(version)/amd64/installation/cdrom/boot-com.iso
+netbsd netbsd%: iso = $(vm)/iso/netbsd-$(version).iso
+
+freebsd freebsd%: version = 13.2
+freebsd freebsd%: data_file = FreeBSD-$(version)-RELEASE-amd64.qcow2
+freebsd freebsd%: data = $(vm)/data/$(data_file)
+freebsd%: data_tmp_file = $(data_file).xz
+freebsd%: data_uri = https://download.freebsd.org/ftp/releases/VM-IMAGES/$(version)-RELEASE/amd64/Latest/$(data_tmp_file)
+
+dragonflybsd dragonflybsd%: version = 6.4.0
+dragonflybsd dragonflybsd%: data_file = dragonflybsd-$(version).qcow2
+dragonflybsd dragonflybsd%: data = $(vm)/data/$(data_file)
+dragonflybsd%: data_tmp_file = $(data_file).img.bz2
+dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly-x86_64-$(version)_REL.img.bz2
+
 %: netrom =
 %: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root
 %: cdrom_boot = -drive file=$(iso),index=1,media=cdrom -boot d
+%: machine = q35
+%: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
+%: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
+%bsd: machine = pc
 
 define qemu
  qemu-system-x86_64 -nodefaults \
- -machine q35,usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
+ -machine $(machine),usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
- -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
- -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound \
- -device usb-ehci,id=usb \
- -device usb-kbd,bus=usb.0 \
- -device usb-tablet,bus=usb.0
+ -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac)
 endef
 
 %_iso:
@@ -87,8 +111,17 @@ ros_data:
 	unzip -u $(data_tmp).zip -d $(vm)/data/ && \
 	qemu-img convert -f raw -O qcow2 $(data_tmp) $(data) || exit 0
 
+freebsd_data:
+	@test ! -s $(data) && curl -o $(vm)/data/$(data_tmp_file) $(data_uri) && \
+	cd $(vm)/data && unxz $(data_tmp_file) || exit 0
+
+dragonflybsd_data:
+	@test ! -s $(data) && curl -o $(vm)/data/$(data_tmp_file) $(data_uri) && \
+	cd $(vm)/data && bunzip2 $(data_tmp_file) && \
+	qemu-img convert -f raw -O qcow2 $(data_file).img $(data) || exit 0
+
 alpine_standard alpine_virt alpine_extended alpine_netboot:
-	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(u)
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(audio) $(control) $(u)
 
 alpines: | init alpine_standard_data alpine_standard_iso alpine_standard
 	@exit 0
@@ -104,3 +137,18 @@ alpinen: | init alpine_netboot_data alpine_netboot_iso alpine_netboot
 
 ros: | init ros_data
 	@$(qemu) $(storage) $(serial) $(u)
+
+openbsd: | init openbsd_iso openbsd_data
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(u)
+
+netbsd: | init netbsd_iso netbsd_data
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(u)
+
+freebsd: | init freebsd_data
+	@$(qemu) $(storage) $(serial) $(u)
+
+dragonflybsd: | init dragonflybsd_data
+	@$(qemu) $(storage) $(serial) $(u)
+
+dfly: dragonflybsd
+	@exit 0
