@@ -90,7 +90,7 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 %: machine = q35
 %: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
 %: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
-%bsd: machine = pc
+%bsd win98: machine = pc
 
 define qemu
  qemu-system-x86_64 -nodefaults \
@@ -165,3 +165,19 @@ alpine_voip: type = virt
 alpine_voip: | init alpine_virt_data alpine_virt_iso
 	@test ! -e $(vm)/data/$(@).qcow2 && cp $(data) $(vm)/data/$(@).qcow2 || exit 0
 	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(control) $(u)
+
+# fat32
+#dd if=/dev/zero of=disk.img bs=1M count=2
+#mformat -i disk.img
+#mcopy -i disk.img example.txt ::
+#mdir -i disk.img
+#mcopy -i disk.img ::/example.txt extracted.txt
+
+win98: type = win98se_oem
+win98: data = $(vm)/data/$(type).qcow2
+win98: iso_file = $(type).iso
+win98: iso_uri = https://dl.winworldpc.com/Abandonware%20Operating%20Systems/PC/Microsoft%20Windows/Windows%2098-ME/Microsoft%20Windows%2098%20Second%20Edition.7z
+win98: iso = $(vm)/iso/$(iso_file)
+
+win98: | init win98_data win98_iso
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(u)
