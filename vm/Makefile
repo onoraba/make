@@ -101,9 +101,13 @@ define qemu
 endef
 
 %_iso:
-	@test ! -s $(iso) && curl -o $(iso) $(iso_uri) || exit 0
+	@test ! -s $(iso) && curl -o $(iso) $(iso_uri) && \
+	file $(iso) | fgrep -q '7-zip' && cd $(vm)/iso && 7z e $(iso) || exit 0 && \
+	find $(vm)/iso -maxdepth 1 -not -iname "*.iso" -not -path $(vm)/iso -delete || exit 0
+	@-mv '$(vm)/iso/Windows 98 Second Edition.iso' $(iso) 2> /dev/null || exit 0
 
 %_data:
+	@echo $(data) | grep -q alpine && printf '%24s\n' | tr ' ' '#' && printf "diskless guest oneliner:\n%s\n" "echo -e 'n\np\n1\n\n\nw' | fdisk /dev/vda; mkdosfs /dev/vda1; mkdir -p /media/vda1; echo '/dev/vda1 /media/vda1 vfat rw 0 0' >> /etc/fstab; mount -a; setup-alpine; lbu commit" || exit 0
 	@test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s) || exit 0
 
 ros_data:
@@ -181,3 +185,11 @@ win98: iso = $(vm)/iso/$(iso_file)
 
 win98: | init win98_data win98_iso
 	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(u)
+
+# automation
+#mouse_move dx dy [dz] Move the active mouse to the specified coordinates dx dy with optional scroll axis dz.
+#mouse_button val Change the active mouse button state val (1=L, 2=M, 4=R).
+#mouse_set index Set which mouse device receives events at given index, index can be obtained with:
+#sendkey keys Send keys to the guest. keys could be the name of the key or the raw value in hexadecimal format.
+#Use - to press several keys simultaneously. Example:
+#sendkey ctrl-alt-f1
