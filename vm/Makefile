@@ -158,3 +158,10 @@ nbsd: netbsd
 
 fbsd: freebsd
 	@exit 0
+
+# alpine qemu diskless oneliner
+# echo -e 'n\np\n1\n\n\nw' | fdisk /dev/vda; mkdosfs /dev/vda1; mkdir -p /media/vda1; echo "/dev/vda1 /media/vda1 vfat rw 0 0" >> /etc/fstab; mount -a; setup-alpine; lbu commit
+alpine_voip: type = virt
+alpine_voip: | init alpine_virt_data alpine_virt_iso
+	@test ! -e $(vm)/data/$(@).qcow2 && cp $(data) $(vm)/data/$(@).qcow2 || exit 0
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(control) $(u)
