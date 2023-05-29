@@ -97,7 +97,8 @@ define qemu
  -machine $(machine),usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
- -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac)
+ -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
+ -device virtio-vga
 endef
 
 %_iso:
@@ -182,9 +183,24 @@ win98: data = $(vm)/data/$(type).qcow2
 win98: iso_file = $(type).iso
 win98: iso_uri = https://dl.winworldpc.com/Abandonware%20Operating%20Systems/PC/Microsoft%20Windows/Windows%2098-ME/Microsoft%20Windows%2098%20Second%20Edition.7z
 win98: iso = $(vm)/iso/$(iso_file)
+win98: mon = $(vm)/tmp/win98.sock
+win98: screen = /tmp/win98.ppm
 
 win98: | init win98_data win98_iso
-	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(u)
+	@$(qemu) $(storage) $(cdrom_boot) \
+	-chardev socket,id=monitor,path=$(sock),server=on,wait=off \
+	-monitor chardev:monitor $(u)
+
+# sock = /home/user/vm/tmp/win98.sock
+
+#@echo "$(cmd)" | socat UNIX-CONNECT:"$(sock)" - | tail -n +3 | head -n -1
+
+%_pixel_%: x = $(shell echo $(@) | cut -d'_' -f3)
+%_pixel_%: y = $(shell echo $(@) | cut -d'_' -f4)
+%_pixel_%: color = $(shell echo $(@) | cut -d'_' -f5)
+
+%_pixel_%:
+	test $$(convert /tmp/win98.ppm -format '%[hex:u.p{7,2}]' info:-) = A8A8A8 && echo ok || echo fail
 
 # automation
 #mouse_move dx dy [dz] Move the active mouse to the specified coordinates dx dy with optional scroll axis dz.
