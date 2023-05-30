@@ -93,9 +93,21 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 %: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
 %: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
 %bsd win98 win98%: machine = pc
+win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ahci,id=ahci -device ide-hd,drive=root,bus=ahci.0
+win98 win98%: control =
 
 define qemu
  qemu-system-x86_64 -nodefaults \
+ -machine $(machine),usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
+ -cpu kvm64 -smp 1 -m $(m) -accel kvm \
+ -display $(d) \
+ -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
+ -device virtio-vga \
+ -uuid $(id)
+endef
+
+define qemu2
+ qemu-system-x86_64 \
  -machine $(machine),usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
@@ -190,14 +202,14 @@ win98 win98%: mon = $(vm)/tmp/win98.sock
 win98 win98%: screen = /tmp/win98.ppm
 
 win98d:
-	@$(qemu) $(storage) $(cdrom_boot) $(control) \
+	@$(qemu2) $(storage) $(cdrom_boot) $(control) \
 	-chardev socket,id=monitor,path=$(mon),server=on,wait=off \
 	-monitor chardev:monitor $(u) -daemonize
 
 win98:
 	@$(qemu) $(storage) $(cdrom) $(control) $(u)
 
-win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup
+win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir
 	@sleep 60
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
@@ -240,9 +252,56 @@ win98_routine_check: p_1_18_A8A8A8
 	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
 
 win98_begin_setup: p_231_156_00FFFF
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
 	@sleep 0.5
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "mouse_move 220 180" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_move 20 20" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_prepare_dir: p_313_186_000000
+	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_move 240 200" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+
+win98_install_type: p_304_176_FF0000
+	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_move 240 200" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "sendkey w" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "sendkey i" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "sendkey n" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "sendkey 9" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "sendkey 8" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.2
+	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "mouse_move 200 90" | socat UNIX-CONNECT:"$(mon)" -
 
 
 # automation
