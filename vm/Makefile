@@ -209,105 +209,86 @@ win98d:
 win98:
 	@$(qemu) $(storage) $(cdrom) $(control) $(u)
 
-win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir
-	@sleep 60
+win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir win98_install_type win98_hdd_boot win98_user_info win98_lic win98_hdd_boot2
+	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
 
 p_%: x = $(shell echo $(@) | cut -d'_' -f2)
 p_%: y = $(shell echo $(@) | cut -d'_' -f3)
 p_%: color = $(shell echo $(@) | cut -d'_' -f4)
+%: send = | socat UNIX-CONNECT:"$(mon)" - && sleep 0.3 || sleep 0.3
 
 p_%:
-	@while true; do echo "screendump $(screen)" | socat UNIX-CONNECT:"$(mon)" -; \
+	@while true; do \
+	echo "screendump $(screen)" $(send); \
 	sleep 0.5; \
 	test $$(convert $(screen) -format '%[hex:u.p{$(x),$(y)}]' info:-) = $(color) && break; \
 	done;
 
-win98_cdrom_boot: p_7_2_A8A8A8
-	@echo "sendkey 2" | socat UNIX-CONNECT:"$(mon)" -
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+win98_cdrom_boot: p_0_2_A8A8A8
+	@echo "sendkey 2" $(send)
+	@echo "sendkey kp_enter" $(send)
 
-win98_cdrom_boot2: p_0_2_A8A8A8
-	@echo "sendkey 2" | socat UNIX-CONNECT:"$(mon)" -
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+win98_cdrom_boot2: p_0_3_A8A8A8
+	@echo "sendkey 2" $(send)
+	@echo "sendkey kp_enter" $(send)
 
-win98_hdd_boot: p_7_2_A8A8A8
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+win98_hdd_boot: p_0_4_A8A8A8
+	@echo "sendkey kp_enter" $(send)
+
+win98_hdd_boot2: p_0_5_A8A8A8
+	@echo "sendkey kp_enter" $(send)
 
 win98_welcome_setup: | p_9_18_A8A8A8 p_8_18_0000A8
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" $(send)
 
 win98_disk_space: p_36_192_A8A8A8
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" $(send)
 
 win98_support_large: p_36_160_A8A8A8
-	@echo "sendkey down" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey down" $(send)
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey kp_enter" $(send)
 
 win98_routine_check: p_1_18_A8A8A8
-	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" $(send)
 
 win98_begin_setup: p_231_156_00FFFF
-	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_move 220 180" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_move 20 20" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" $(send)
 
-win98_prepare_dir: p_313_186_000000
-	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_move 240 200" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
+win98_prepare_dir: p_189_227_FF00FF
+	@echo "sendkey tab" $(send)
+	@echo "sendkey kp_enter" $(send)
 
 win98_install_type: p_304_176_FF0000
-	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_move 240 200" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_button 3" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_button 2" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "sendkey w" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "sendkey i" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "sendkey n" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "sendkey 9" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "sendkey 8" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.2
-	@echo "mouse_move -640 -480" | socat UNIX-CONNECT:"$(mon)" -
-	@sleep 0.5
-	@echo "mouse_move 200 90" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey w" $(send)
+	@echo "sendkey i" $(send)
+	@echo "sendkey n" $(send)
+	@echo "sendkey 9" $(send)
+	@echo "sendkey 8" $(send)
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey kp_enter" $(send)
 
+win98_user_info: p_119_210_FF00FF
+	@echo "sendkey u" $(send)
+	@echo "sendkey s" $(send)
+	@echo "sendkey e" $(send)
+	@echo "sendkey r" $(send)
+	@echo "sendkey kp_enter" $(send)
+	@echo "sendkey tab" $(send)
+	@echo "sendkey tab" $(send)
+	@echo "sendkey tab" $(send)
+	@echo "sendkey kp_enter" $(send)
 
-# automation
-#mouse_move dx dy [dz] Move the active mouse to the specified coordinates dx dy with optional scroll axis dz.
-#mouse_button val Change the active mouse button state val (1=L, 2=M, 4=R).
-#mouse_set index Set which mouse device receives events at given index, index can be obtained with:
-#sendkey keys Send keys to the guest. keys could be the name of the key or the raw value in hexadecimal format.
-#Use - to press several keys simultaneously. Example:
-#sendkey ctrl-alt-f1
+win98_lic: p_98_130_FFFF00
+	@echo "sendkey r" $(send); echo "sendkey w" $(send); echo "sendkey 9" $(send); echo "sendkey m" $(send); echo "sendkey g" $(send)
+	@echo "sendkey q" $(send); echo "sendkey r" $(send); echo "sendkey 4" $(send); echo "sendkey g" $(send); echo "sendkey 3" $(send);
+	@echo "sendkey 2" $(send); echo "sendkey w" $(send); echo "sendkey r" $(send); echo "sendkey r" $(send); echo "sendkey 9" $(send);
+	@echo "sendkey t" $(send); echo "sendkey g" $(send); echo "sendkey 7" $(send); echo "sendkey b" $(send); echo "sendkey h" $(send);
+	@echo "sendkey 3" $(send); echo "sendkey 3" $(send); echo "sendkey g" $(send); echo "sendkey x" $(send); echo "sendkey b" $(send);
+	@echo "sendkey kp_enter" $(send); sleep 0.2
+	@echo "sendkey kp_enter" $(send)
