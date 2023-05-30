@@ -15,6 +15,7 @@ snap ?= $(shell date +%Y%m%d)
 u ?= -snapshot
 
 vm = $(HOME)/vm
+id = $(shell uuidgen)
 
 serial2 = -chardev stdio,id=char0,signal=${signal} -serial chardev:char0
 serial = -serial mon:stdio
@@ -87,10 +88,11 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 %: netrom =
 %: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root
 %: cdrom_boot = -drive file=$(iso),index=1,media=cdrom -boot d
+%: cdrom = -drive file=$(iso),index=1,media=cdrom -boot c
 %: machine = q35
 %: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
 %: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
-%bsd win98: machine = pc
+%bsd win98 win98%: machine = pc
 
 define qemu
  qemu-system-x86_64 -nodefaults \
@@ -98,7 +100,8 @@ define qemu
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
  -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
- -device virtio-vga
+ -device virtio-vga \
+ -uuid $(id)
 endef
 
 %_iso:
@@ -178,20 +181,25 @@ alpine_voip: | init alpine_virt_data alpine_virt_iso
 #mdir -i disk.img
 #mcopy -i disk.img ::/example.txt extracted.txt
 
-win98: type = win98se_oem
-win98: data = $(vm)/data/$(type).qcow2
-win98: iso_file = $(type).iso
-win98: iso_uri = https://dl.winworldpc.com/Abandonware%20Operating%20Systems/PC/Microsoft%20Windows/Windows%2098-ME/Microsoft%20Windows%2098%20Second%20Edition.7z
-win98: iso = $(vm)/iso/$(iso_file)
-%: mon = $(vm)/tmp/win98.sock
-%: screen = /tmp/win98.ppm
+win98 win98%: type = win98se_oem
+win98 win98%: data = $(vm)/data/$(type).qcow2
+win98 win98%: iso_file = $(type).iso
+win98 win98%: iso_uri = https://dl.winworldpc.com/Abandonware%20Operating%20Systems/PC/Microsoft%20Windows/Windows%2098-ME/Microsoft%20Windows%2098%20Second%20Edition.7z
+win98 win98%: iso = $(vm)/iso/$(iso_file)
+win98 win98%: mon = $(vm)/tmp/win98.sock
+win98 win98%: screen = /tmp/win98.ppm
 
-win98:
-	@$(qemu) $(storage) $(cdrom_boot) \
+win98d:
+	@$(qemu) $(storage) $(cdrom_boot) $(control) \
 	-chardev socket,id=monitor,path=$(mon),server=on,wait=off \
 	-monitor chardev:monitor $(u) -daemonize
 
-win98_setup: | init win98_iso win98_data win98 win98_cdrom_boot
+win98:
+	@$(qemu) $(storage) $(cdrom) $(control) $(u)
+
+win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup
+	@sleep 60
+	@pkill -f -- '-uuid $(id)'
 	@echo complete
 
 p_%: x = $(shell echo $(@) | cut -d'_' -f2)
@@ -199,12 +207,43 @@ p_%: y = $(shell echo $(@) | cut -d'_' -f3)
 p_%: color = $(shell echo $(@) | cut -d'_' -f4)
 
 p_%:
-	@while true; do echo "screendump $(screen)" | socat UNIX-CONNECT:"$(mon)" /dev/null; \
+	@while true; do echo "screendump $(screen)" | socat UNIX-CONNECT:"$(mon)" -; \
+	sleep 0.5; \
 	test $$(convert $(screen) -format '%[hex:u.p{$(x),$(y)}]' info:-) = $(color) && break; \
-	sleep 3; done;
+	done;
 
 win98_cdrom_boot: p_7_2_A8A8A8
-	@exit 0
+	@echo "sendkey 2" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_cdrom_boot2: p_0_2_A8A8A8
+	@echo "sendkey 2" | socat UNIX-CONNECT:"$(mon)" -
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_hdd_boot: p_7_2_A8A8A8
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_welcome_setup: | p_9_18_A8A8A8 p_8_18_0000A8
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_disk_space: p_36_192_A8A8A8
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_support_large: p_36_160_A8A8A8
+	@echo "sendkey down" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_routine_check: p_1_18_A8A8A8
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
+win98_begin_setup: p_231_156_00FFFF
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+	@sleep 0.5
+	@echo "sendkey kp_enter" | socat UNIX-CONNECT:"$(mon)" -
+
 
 # automation
 #mouse_move dx dy [dz] Move the active mouse to the specified coordinates dx dy with optional scroll axis dz.
