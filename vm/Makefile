@@ -93,7 +93,10 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 %: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
 %: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
 %bsd win98 win98%: machine = pc
-win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ahci,id=ahci -device ide-hd,drive=root,bus=ahci.0
+
+#win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ahci,id=ahci -device ide-hd,drive=root,bus=ahci.0
+
+win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ide-hd,drive=root
 win98 win98%: control =
 
 define qemu
@@ -108,7 +111,7 @@ endef
 
 define qemu2
  qemu-system-x86_64 \
- -machine $(machine),usb=on,smbus=off,dump-guest-core=off,vmport=off,sata=on \
+ -machine $(machine),hpet=off,usb=off,smbus=off,dump-guest-core=off,vmport=off,sata=off \
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
  -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
@@ -209,7 +212,7 @@ win98d:
 win98:
 	@$(qemu) $(storage) $(cdrom) $(control) $(u)
 
-win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir win98_install_type win98_hdd_boot win98_user_info win98_lic win98_hdd_boot2
+win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir win98_install_type win98_hdd_boot win98_user_info win98_lic win98_hdd_boot2 win98_bsod win98_hdd_boot3 win98_after_bsod win98_time win98_bsod2 win98_hdd_boot4 win98_after_bsod2
 	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
@@ -217,7 +220,7 @@ win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_s
 p_%: x = $(shell echo $(@) | cut -d'_' -f2)
 p_%: y = $(shell echo $(@) | cut -d'_' -f3)
 p_%: color = $(shell echo $(@) | cut -d'_' -f4)
-%: send = | socat UNIX-CONNECT:"$(mon)" - && sleep 0.3 || sleep 0.3
+%: send = | socat UNIX-CONNECT:"$(mon)" -; sleep 0.37
 
 p_%:
 	@while true; do \
@@ -227,68 +230,92 @@ p_%:
 	done;
 
 win98_cdrom_boot: p_0_2_A8A8A8
-	@echo "sendkey 2" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey 2 $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_cdrom_boot2: p_0_3_A8A8A8
-	@echo "sendkey 2" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey 2 $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_hdd_boot: p_0_4_A8A8A8
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_hdd_boot2: p_0_5_A8A8A8
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
+
+win98_hdd_boot3: p_0_6_A8A8A8
+	@echo sendkey kp_enter $(send)
+
+win98_hdd_boot4: p_0_7_A8A8A8
+	@echo sendkey kp_enter $(send)
 
 win98_welcome_setup: | p_9_18_A8A8A8 p_8_18_0000A8
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_disk_space: p_36_192_A8A8A8
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_support_large: p_36_160_A8A8A8
-	@echo "sendkey down" $(send)
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey down $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_routine_check: p_1_18_A8A8A8
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_begin_setup: p_231_156_00FFFF
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_prepare_dir: p_189_227_FF00FF
-	@echo "sendkey tab" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey tab $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_install_type: p_304_176_FF0000
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey w" $(send)
-	@echo "sendkey i" $(send)
-	@echo "sendkey n" $(send)
-	@echo "sendkey 9" $(send)
-	@echo "sendkey 8" $(send)
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey w $(send)
+	@echo sendkey i $(send)
+	@echo sendkey n $(send)
+	@echo sendkey 9 $(send)
+	@echo sendkey 8 $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_user_info: p_119_210_FF00FF
-	@echo "sendkey u" $(send)
-	@echo "sendkey s" $(send)
-	@echo "sendkey e" $(send)
-	@echo "sendkey r" $(send)
-	@echo "sendkey kp_enter" $(send)
-	@echo "sendkey tab" $(send)
-	@echo "sendkey tab" $(send)
-	@echo "sendkey tab" $(send)
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey u $(send)
+	@echo sendkey s $(send)
+	@echo sendkey e $(send)
+	@echo sendkey r $(send)
+	@echo sendkey kp_enter $(send)
+	@echo sendkey tab $(send)
+	@echo sendkey tab $(send)
+	@echo sendkey tab $(send)
+	@echo sendkey kp_enter $(send)
 
 win98_lic: p_98_130_FFFF00
-	@echo "sendkey r" $(send); echo "sendkey w" $(send); echo "sendkey 9" $(send); echo "sendkey m" $(send); echo "sendkey g" $(send)
-	@echo "sendkey q" $(send); echo "sendkey r" $(send); echo "sendkey 4" $(send); echo "sendkey g" $(send); echo "sendkey 3" $(send);
-	@echo "sendkey 2" $(send); echo "sendkey w" $(send); echo "sendkey r" $(send); echo "sendkey r" $(send); echo "sendkey 9" $(send);
-	@echo "sendkey t" $(send); echo "sendkey g" $(send); echo "sendkey 7" $(send); echo "sendkey b" $(send); echo "sendkey h" $(send);
-	@echo "sendkey 3" $(send); echo "sendkey 3" $(send); echo "sendkey g" $(send); echo "sendkey x" $(send); echo "sendkey b" $(send);
-	@echo "sendkey kp_enter" $(send); sleep 0.2
-	@echo "sendkey kp_enter" $(send)
+	@echo sendkey r $(send); echo sendkey w $(send); echo sendkey 9 $(send); echo sendkey m $(send); echo sendkey g $(send)
+	@echo sendkey q $(send); echo sendkey r $(send); echo sendkey 4 $(send); echo sendkey g $(send); echo sendkey 3 $(send);
+	@echo sendkey 2 $(send); echo sendkey w $(send); echo sendkey r $(send); echo sendkey r $(send); echo sendkey 9 $(send);
+	@echo sendkey t $(send); echo sendkey g $(send); echo sendkey 7 $(send); echo sendkey b $(send); echo sendkey h $(send);
+	@echo sendkey 3 $(send); echo sendkey 3 $(send); echo sendkey g $(send); echo sendkey x $(send); echo sendkey b $(send);
+	@echo sendkey kp_enter $(send); sleep 0.2
+	@echo sendkey kp_enter $(send)
+
+win98_bsod: | p_45_183_FFFFFF p_324_144_A8A8A8
+	@echo system_reset $(send)
+
+win98_after_bsod: p_18_178_A8A8A8 
+	@echo sendkey 1 $(send)
+	@echo sendkey kp_enter $(send)
+
+win98_time: p_527_215_57A8A8 
+	@echo sendkey tab $(send)
+	@echo sendkey kp_enter $(send)
+
+win98_bsod2: | p_46_183_FFFFFF p_325_144_A8A8A8
+	@echo system_reset $(send)
+
+win98_after_bsod2: p_19_178_A8A8A8 
+	@echo sendkey 1 $(send)
+	@echo sendkey kp_enter $(send)
