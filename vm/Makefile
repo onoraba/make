@@ -127,8 +127,8 @@ endef
 	@-mv '$(vm)/iso/Windows 98 Second Edition.iso' $(iso) 2> /dev/null || exit 0
 
 %_data:
-	@echo $(data) | grep -q alpine && printf '%24s\n' | tr ' ' '#' && printf "diskless guest oneliner:\n%s\n" "echo -e 'n\np\n1\n\n\nw' | fdisk /dev/vda; mkdosfs /dev/vda1; mkdir -p /media/vda1; echo '/dev/vda1 /media/vda1 vfat rw 0 0' >> /etc/fstab; mount -a; setup-alpine; lbu commit" || exit 0
-	@test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s) || exit 0
+	@test ! -s $(data) && qemu-img create -f qcow2 $(data) $(s) && \
+	echo $(data) | grep -q alpine && printf '%24s\n' | tr ' ' '#' && printf "diskless guest oneliner:\n%s\n" "echo -e 'n\np\n1\n\n\nw' | fdisk /dev/vda; sleep 1; mkdosfs /dev/vda1; mkdir -p /media/vda1; echo '/dev/vda1 /media/vda1 vfat rw 0 0' >> /etc/fstab; mount -a; setup-alpine; lbu commit" || exit 0
 
 ros_data:
 	@test ! -s $(data) && curl -o $(data_tmp).zip $(data_uri) && \
@@ -183,11 +183,11 @@ nbsd: netbsd
 fbsd: freebsd
 	@exit 0
 
-# alpine qemu diskless oneliner
-# echo -e 'n\np\n1\n\n\nw' | fdisk /dev/vda; mkdosfs /dev/vda1; mkdir -p /media/vda1; echo "/dev/vda1 /media/vda1 vfat rw 0 0" >> /etc/fstab; mount -a; setup-alpine; lbu commit
 alpine_voip: type = virt
+alpine_voip: data = $(vm)/data/$(@).qcow2
 alpine_voip: | init alpine_virt_data alpine_virt_iso
-	@test ! -e $(vm)/data/$(@).qcow2 && cp $(data) $(vm)/data/$(@).qcow2 || exit 0
+	@test ! -e $(data) && \
+	cp $(vm)/data/$(iso_file).qcow2 $(data) || exit 0
 	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(control) $(u)
 
 # fat32
