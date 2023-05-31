@@ -96,8 +96,9 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 
 #win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ahci,id=ahci -device ide-hd,drive=root,bus=ahci.0
 
-win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device ide-hd,drive=root
+win98 win98%: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device lsi -device scsi-hd,drive=root
 win98 win98%: control =
+
 
 define qemu
  qemu-system-x86_64 -nodefaults \
@@ -114,7 +115,7 @@ define qemu2
  -machine $(machine),hpet=off,usb=off,smbus=off,dump-guest-core=off,vmport=off,sata=off \
  -cpu kvm64 -smp 1 -m $(m) -accel kvm \
  -display $(d) \
- -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device virtio-net-pci,romfile=$(netrom),netdev=net,mac=$(mac) \
+ -netdev tap,id=net,ifname=$(ifname),script=no,downscript=no -device rtl8139,romfile=$(netrom),netdev=net,mac=$(mac) \
  -device virtio-vga \
  -uuid $(id)
 endef
@@ -210,9 +211,16 @@ win98d:
 	-monitor chardev:monitor $(u) -daemonize
 
 win98:
-	@$(qemu) $(storage) $(cdrom) $(control) $(u)
+	@$(qemu2) $(storage) $(cdrom) $(control) $(u)
 
 win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_setup win98_disk_space win98_support_large win98_cdrom_boot2 win98_routine_check win98_begin_setup win98_prepare_dir win98_install_type win98_hdd_boot win98_user_info win98_lic win98_hdd_boot2 win98_bsod win98_hdd_boot3 win98_after_bsod win98_time win98_bsod2 win98_hdd_boot4 win98_after_bsod2
+	@sleep 120
+	@pkill -f -- '-uuid $(id)'
+	@echo complete
+
+# patch first
+# https://github.com/JHRobotics/patcher9x
+win98_setup2: | init win98_iso win98_data win98d win98_cd_cli win98_fdisk_start win98_fdisk win98_fdisk_part win98_fdisk_finish win98_cd_cli2 win98_cd_dwin win98_format win98_format_label win98_xcopy win98_patch
 	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
@@ -307,3 +315,81 @@ win98_bsod2: | p_46_183_FFFFFF p_325_144_A8A8A8
 
 win98_after_bsod2: p_19_178_A8A8A8 
 	@$(call sk,1); $(call sk,kp_enter)
+
+### patch first
+win98_cd_cli: p_0_2_A8A8A8
+	@$(call sk,2); $(call sk,2); $(call sk,kp_enter)
+
+win98_cd_cli2: p_0_3_A8A8A8
+	@$(call sk,2); $(call sk,2); $(call sk,kp_enter)
+
+win98_fdisk_start: p_0_3_A8A8A8
+	@$(call sks,fdisk); $(call sk,kp_enter)
+
+win98_fdisk: p_551_290_FFFFFF
+	@# yes
+	@$(call sk,kp_enter)
+	@# create part and drive
+	@$(call sk,kp_enter)
+	@# create primary
+	@$(call sk,kp_enter)
+
+win98_fdisk_part: p_560_146_FFFFFF
+	@# max avai
+	@$(call sk,kp_enter)
+
+win98_fdisk_finish: p_72_178_FFFFFF
+	@$(call sk,esc)
+	@echo system_reset | $(2mon)
+
+# this one is long to run
+win98_cd_dwin: p_0_4_A8A8A8
+	@$(call sk,d); $(call sk,shift-semicolon); $(call sk,kp_enter)
+	@$(call sks,cd)
+	@$(call sk,spc)
+	@$(call sks,win98); $(call sk,kp_enter)
+
+win98_format: p_0_130_A8A8A8
+	@$(call sks,format)
+	@$(call sk,dot)
+	@$(call sks,com)
+	@$(call sk,spc)
+	@$(call sk,c); $(call sk,shift-semicolon)
+	@$(call sk,spc)
+	@$(call sk,slash); $(call sks,s)
+	@$(call sk,kp_enter)
+	@$(call sk,y)
+	@$(call sk,kp_enter)
+
+win98_format_label: | p_0_370_A8A8A8 p_261_370_A8A8A8
+	@$(call sk,kp_enter)
+
+win98_xcopy: | p_1_386_A8A8A8
+	@# cd tools/oldmsdos
+	@$(call sks,cd); $(call sk,spc); $(call sk,backslash); $(call sk,kp_enter)
+	@$(call sks,cd); $(call sk,spc); \
+	$(call sks,tools); $(call sk,backslash); $(call sks,oldmsdos); $(call sk,kp_enter)
+	@# xcopy32
+	@$(call sks,xcopy32)
+	@$(call sk,spc)
+	@$(call sk,slash); $(call sks,s)
+	@$(call sk,spc)
+	@$(call sk,slash); $(call sks,e)
+	@$(call sk,spc)
+	@$(call sk,d); $(call sk,shift-semicolon)
+	@$(call sk,backslash)
+	@$(call sks,win98)
+	@$(call sk,spc)
+	@$(call sk,c); $(call sk,shift-semicolon)
+	@$(call sk,backslash)
+	@$(call sks,dist)
+	@$(call sk,kp_enter)
+	@# is it dir from xcopy
+	@$(call sk,d)
+
+win98_patch: | p_1_387_A8A8A8 p_0_387_000000
+	@$(call sk,spc)
+	@$(call sk,kp_enter)
+	@$(call sk,spc)
+	@$(call sk,kp_enter)
+	@$(call sk,kp_enter)
