@@ -201,11 +201,11 @@ win98_patcher:
 win98_disk_c: img = /tmp/fat.img
 win98_disk_c:
 	@test ! -s $(img) && \
-	echo 'drive c: file="$(img)" partition=1 heads=20 cylinders=40 sectors=50 filter' > $(HOME)/.mtoolsrc && \
-	dd if=/dev/zero of=$(img) bs=1M count=400 && \
+	echo 'drive c: file="$(img)" partition=1' > $(HOME)/.mtoolsrc && \
+	dd if=/dev/zero of=$(img) bs=1M count=1000 && \
 	mpartition -I -c -a c: && \
-	mformat -F -v win98 c: && \
-	mcopy $(vm)/tmp/patcher9x.exe c: && \
+	mformat -v win98 c: && \
+	mcopy $(vm)/tmp/patcher9x.exe c:patch.exe && \
 	mdir c: || exit 0
 
 win98 win98%: type = win98se_oem
@@ -219,7 +219,7 @@ win98 win98%: screen = /tmp/win98.ppm
 win98d:
 	@$(qemu2) $(cdrom_boot) $(control) \
 	-chardev socket,id=monitor,path=$(mon),server=on,wait=off \
-	-drive id=data,file=/tmp/fat.img,index=2,media=disk,if=none -device lsi -device scsi-hd,drive=data \
+	-drive id=data,file=/tmp/fat.img,index=2,media=disk,format=raw,if=none -device lsi -device scsi-hd,drive=data \
 	-monitor chardev:monitor $(u) -daemonize
 
 win98:
@@ -238,7 +238,7 @@ win98_setup2: | init win98_iso win98_data win98_patcher win98d win98_cd_cli win9
 	@echo complete
 
 # patch and disk first
-win98_setup3: | init win98_iso win98_data win98_patcher win98_disk_c win98d
+win98_setup3: | init win98_iso win98_data win98_patcher win98_disk_c win98d win98_cd_cli win98_cd_tools win98_xcopy win98_patch
 	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
@@ -382,12 +382,14 @@ win98_format: p_0_130_A8A8A8
 win98_format_label: | p_0_370_A8A8A8 p_261_370_A8A8A8
 	@$(call sk,kp_enter)
 
-win98_xcopy: | p_1_386_A8A8A8
-	@# cd tools/oldmsdos
-	@$(call sks,cd); $(call sk,spc); $(call sk,backslash); $(call sk,kp_enter)
+win98_cd_tools: | p_0_3_A8A8A8
+	@# d: and cd tools/oldmsdos
+	@$(call sk,d); $(call sk,shift-semicolon); $(call sk,kp_enter)
 	@$(call sks,cd); $(call sk,spc); \
 	$(call sks,tools); $(call sk,backslash); $(call sks,oldmsdos); $(call sk,kp_enter)
-	@# xcopy32
+
+win98_xcopy: | p_1_130_A8A8A8
+	@# xcopy32 /s /e d:\win98 c:\dist
 	@$(call sks,xcopy32)
 	@$(call sk,spc)
 	@$(call sk,slash); $(call sks,s)
@@ -405,9 +407,7 @@ win98_xcopy: | p_1_386_A8A8A8
 	@# is it dir from xcopy
 	@$(call sk,d)
 
-win98_patch: | p_1_387_A8A8A8 p_0_387_000000
-	@$(call sk,spc)
-	@$(call sk,kp_enter)
-	@$(call sk,spc)
-	@$(call sk,kp_enter)
-	@$(call sk,kp_enter)
+win98_patch: | p_1_386_A8A8A8 p_366_347_A8A8A8
+	@$(call sk,c); $(call sk,shift-semicolon); $(call sk,kp_enter)
+	@$(call sks,patch); $(call sk,kp_enter)
+
