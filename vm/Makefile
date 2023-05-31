@@ -188,14 +188,20 @@ alpine_voip: data = $(vm)/data/$(@).qcow2
 alpine_voip: | init alpine_virt_data alpine_virt_iso
 	@test ! -e $(data) && \
 	cp $(vm)/data/$(iso_file).qcow2 $(data) || exit 0
-	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(control) $(u)
+	@$(qemu) $(storage) $(cdrom_boot) $(serial) $(random_src) $(control) $(u) \
+	-drive id=data,file=/tmp/fat.img,index=2,media=disk,if=none -device virtio-blk-pci,drive=data
 
-# fat32
-#dd if=/dev/zero of=disk.img bs=1M count=2
-#mformat -i disk.img
-#mcopy -i disk.img example.txt ::
-#mdir -i disk.img
-#mcopy -i disk.img ::/example.txt extracted.txt
+win98_patcher: ver = 0.8.50
+win98_patcher: file = patcher9x-$(ver)-win32.zip
+win98_patcher: uri = https://github.com/JHRobotics/patcher9x/releases/download/v$(ver)/$(file)
+win98_patcher: img = /tmp/fat.img
+win98_patcher:
+	@test ! -s $(vm)/tmp/patcher9x.exe && curl -o $(vm)/tmp/$(file) -L $(uri) && \
+	unzip -u $(vm)/tmp/$(file) -d $(vm)/tmp || exit 0
+	@dd if=/dev/zero of=$(img) bs=1M count=50
+	@mformat -i $(img)
+	@mcopy -i $(img) $(vm)/tmp/patcher9x.exe ::
+	@mdir -i $(img)
 
 win98 win98%: type = win98se_oem
 win98 win98%: data = $(vm)/data/$(type).qcow2
@@ -208,6 +214,7 @@ win98 win98%: screen = /tmp/win98.ppm
 win98d:
 	@$(qemu2) $(storage) $(cdrom_boot) $(control) \
 	-chardev socket,id=monitor,path=$(mon),server=on,wait=off \
+	-drive id=data,file=/tmp/fat.img,index=2,media=disk,if=none -device ide-hd,drive=data \
 	-monitor chardev:monitor $(u) -daemonize
 
 win98:
@@ -220,7 +227,7 @@ win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_s
 
 # patch first
 # https://github.com/JHRobotics/patcher9x
-win98_setup2: | init win98_iso win98_data win98d win98_cd_cli win98_fdisk_start win98_fdisk win98_fdisk_part win98_fdisk_finish win98_cd_cli2 win98_cd_dwin win98_format win98_format_label win98_xcopy win98_patch
+win98_setup2: | init win98_iso win98_data win98_patcher win98d win98_cd_cli win98_fdisk_start win98_fdisk win98_fdisk_part win98_fdisk_finish win98_cd_cli2 win98_cd_dwin win98_format win98_format_label win98_xcopy win98_patch
 	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
