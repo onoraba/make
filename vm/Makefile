@@ -87,8 +87,8 @@ dragonflybsd%: data_uri = https://mirror-master.dragonflybsd.org/iso-images/dfly
 
 %: netrom =
 %: storage = -drive id=root,file=$(data),index=0,media=disk,if=none -device virtio-blk-pci,drive=root
-%: cdrom_boot = -drive file=$(iso),index=1,media=cdrom -boot d
-%: cdrom = -drive file=$(iso),index=1,media=cdrom -boot c
+%: cdrom_boot = -drive file=$(iso),index=2,media=cdrom -boot d
+%: cdrom = -drive file=$(iso),index=2,media=cdrom -boot c
 %: machine = q35
 %: control = -device usb-ehci,id=usb -device usb-kbd,bus=usb.0 -device usb-tablet,bus=usb.0
 %: audio = -audiodev driver=$(a),id=sound,in.channels=0,out.channels=2,out.frequency=44100,out.format=s16 -device ac97,audiodev=sound
@@ -194,14 +194,19 @@ alpine_voip: | init alpine_virt_data alpine_virt_iso
 win98_patcher: ver = 0.8.50
 win98_patcher: file = patcher9x-$(ver)-win32.zip
 win98_patcher: uri = https://github.com/JHRobotics/patcher9x/releases/download/v$(ver)/$(file)
-win98_patcher: img = /tmp/fat.img
 win98_patcher:
 	@test ! -s $(vm)/tmp/patcher9x.exe && curl -o $(vm)/tmp/$(file) -L $(uri) && \
 	unzip -u $(vm)/tmp/$(file) -d $(vm)/tmp || exit 0
-	@dd if=/dev/zero of=$(img) bs=1M count=50
-	@mformat -i $(img)
-	@mcopy -i $(img) $(vm)/tmp/patcher9x.exe ::
-	@mdir -i $(img)
+
+win98_disk_c: img = /tmp/fat.img
+win98_disk_c:
+	@test ! -s $(img) && \
+	echo 'drive c: file="$(img)" partition=1 heads=20 cylinders=40 sectors=50 filter' > $(HOME)/.mtoolsrc && \
+	dd if=/dev/zero of=$(img) bs=1M count=400 && \
+	mpartition -I -c -a c: && \
+	mformat -F -v win98 c: && \
+	mcopy $(vm)/tmp/patcher9x.exe c: && \
+	mdir c: || exit 0
 
 win98 win98%: type = win98se_oem
 win98 win98%: data = $(vm)/data/$(type).qcow2
@@ -212,9 +217,9 @@ win98 win98%: mon = $(vm)/tmp/win98.sock
 win98 win98%: screen = /tmp/win98.ppm
 
 win98d:
-	@$(qemu2) $(storage) $(cdrom_boot) $(control) \
+	@$(qemu2) $(cdrom_boot) $(control) \
 	-chardev socket,id=monitor,path=$(mon),server=on,wait=off \
-	-drive id=data,file=/tmp/fat.img,index=2,media=disk,if=none -device ide-hd,drive=data \
+	-drive id=data,file=/tmp/fat.img,index=2,media=disk,if=none -device lsi -device scsi-hd,drive=data \
 	-monitor chardev:monitor $(u) -daemonize
 
 win98:
@@ -228,6 +233,12 @@ win98_setup: | init win98_iso win98_data win98d win98_cdrom_boot win98_welcome_s
 # patch first
 # https://github.com/JHRobotics/patcher9x
 win98_setup2: | init win98_iso win98_data win98_patcher win98d win98_cd_cli win98_fdisk_start win98_fdisk win98_fdisk_part win98_fdisk_finish win98_cd_cli2 win98_cd_dwin win98_format win98_format_label win98_xcopy win98_patch
+	@sleep 120
+	@pkill -f -- '-uuid $(id)'
+	@echo complete
+
+# patch and disk first
+win98_setup3: | init win98_iso win98_data win98_patcher win98_disk_c win98d
 	@sleep 120
 	@pkill -f -- '-uuid $(id)'
 	@echo complete
