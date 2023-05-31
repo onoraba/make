@@ -221,101 +221,89 @@ p_%: x = $(shell echo $(@) | cut -d'_' -f2)
 p_%: y = $(shell echo $(@) | cut -d'_' -f3)
 p_%: color = $(shell echo $(@) | cut -d'_' -f4)
 %: send = | socat UNIX-CONNECT:"$(mon)" -; sleep 0.37
+%: 2mon = socat UNIX-CONNECT:"$(mon)" -; sleep 0.37
+
+define sk
+ echo sendkey $(1) | $(2mon); sleep 0.37
+endef
+
+define sks
+ echo $(1) | sed 's/\B/\n/g' | while read c; do echo sendkey $${c} | $(2mon); sleep 0.37; done
+endef
 
 p_%:
 	@while true; do \
-	echo "screendump $(screen)" $(send); \
+	echo "screendump $(screen)" | $(2mon); \
 	sleep 0.5; \
 	test $$(convert $(screen) -format '%[hex:u.p{$(x),$(y)}]' info:-) = $(color) && break; \
 	done;
 
 win98_cdrom_boot: p_0_2_A8A8A8
-	@echo sendkey 2 $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,2); $(call sk,kp_enter)
 
 win98_cdrom_boot2: p_0_3_A8A8A8
-	@echo sendkey 2 $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,2); $(call sk,kp_enter)
 
 win98_hdd_boot: p_0_4_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_hdd_boot2: p_0_5_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_hdd_boot3: p_0_6_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_hdd_boot4: p_0_7_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_welcome_setup: | p_9_18_A8A8A8 p_8_18_0000A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_disk_space: p_36_192_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_support_large: p_36_160_A8A8A8
-	@echo sendkey down $(send)
-	@echo sendkey kp_enter $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,down); $(call sk,kp_enter); $(call sk,kp_enter)
 
 win98_routine_check: p_1_18_A8A8A8
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_begin_setup: p_231_156_00FFFF
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter)
 
 win98_prepare_dir: p_189_227_FF00FF
-	@echo sendkey tab $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,tab)
+	@$(call sk,kp_enter)
 
 win98_install_type: p_304_176_FF0000
-	@echo sendkey kp_enter $(send)
-	@echo sendkey kp_enter $(send)
-	@echo sendkey w $(send)
-	@echo sendkey i $(send)
-	@echo sendkey n $(send)
-	@echo sendkey 9 $(send)
-	@echo sendkey 8 $(send)
-	@echo sendkey kp_enter $(send)
-	@echo sendkey kp_enter $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,kp_enter); $(call sk,kp_enter)
+	@$(call sks,win98)
+	@$(call sk,kp_enter); $(call sk,kp_enter); $(call sk,kp_enter)
 
 win98_user_info: p_119_210_FF00FF
-	@echo sendkey u $(send)
-	@echo sendkey s $(send)
-	@echo sendkey e $(send)
-	@echo sendkey r $(send)
-	@echo sendkey kp_enter $(send)
-	@echo sendkey tab $(send)
-	@echo sendkey tab $(send)
-	@echo sendkey tab $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sks,user)
+	@$(call sk,kp_enter)
+	@$(call sk,tab)
+	@$(call sk,tab)
+	@$(call sk,tab)
+	@$(call sk,kp_enter)
 
 win98_lic: p_98_130_FFFF00
-	@echo sendkey r $(send); echo sendkey w $(send); echo sendkey 9 $(send); echo sendkey m $(send); echo sendkey g $(send)
-	@echo sendkey q $(send); echo sendkey r $(send); echo sendkey 4 $(send); echo sendkey g $(send); echo sendkey 3 $(send);
-	@echo sendkey 2 $(send); echo sendkey w $(send); echo sendkey r $(send); echo sendkey r $(send); echo sendkey 9 $(send);
-	@echo sendkey t $(send); echo sendkey g $(send); echo sendkey 7 $(send); echo sendkey b $(send); echo sendkey h $(send);
-	@echo sendkey 3 $(send); echo sendkey 3 $(send); echo sendkey g $(send); echo sendkey x $(send); echo sendkey b $(send);
-	@echo sendkey kp_enter $(send); sleep 0.2
-	@echo sendkey kp_enter $(send)
+	@$(call sks,rw9mgqr4g32wrr9tg7bh33gxb)
+	@$(call sk,kp_enter)
+	@$(call sk,kp_enter)
 
 win98_bsod: | p_45_183_FFFFFF p_324_144_A8A8A8
-	@echo system_reset $(send)
+	@echo system_reset | $(2mon)
 
 win98_after_bsod: p_18_178_A8A8A8 
-	@echo sendkey 1 $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,1); $(call sk,kp_enter)
 
 win98_time: p_527_215_57A8A8 
-	@echo sendkey tab $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,tab); $(call sk,kp_enter)
 
 win98_bsod2: | p_46_183_FFFFFF p_325_144_A8A8A8
-	@echo system_reset $(send)
+	@echo system_reset | $(2mon)
 
 win98_after_bsod2: p_19_178_A8A8A8 
-	@echo sendkey 1 $(send)
-	@echo sendkey kp_enter $(send)
+	@$(call sk,1); $(call sk,kp_enter)
