@@ -313,10 +313,11 @@ sed -i -e "s/revision=.*/revision=$(rev)/" \
 -e '/checksum=".*[^"]$$/N' -e "s/checksum=.*/checksum='$$hash $$hash_openal'/" \
 -e '/distfiles=".*[^"]$$/N' -e "s|distfiles=.*|distfiles='$(http)/$(distfile) $(http)/openal-$(version_openal).tar.gz'|" \
 -e '/^checksum=.*/a nostrip=1' template
+sed -i -e '/^libarcan/ s/0.15/0.16/' -e '/^libarcan/ s/_1$$/_6/' $(void)/common/shlibs
 endef
 
 define xbps_build
-cd $(void) && ./xbps-src pkg -f $(t)
+cd $(void) && ./xbps-src -j $$(cat /proc/cpuinfo | fgrep processor | wc -l) pkg -f $(t)
 endef
 
 arcan_build: | void_pkg openal arcan xarcan aclip aloadimage acfgfs durden kakoune-arcan qemu-arcan
