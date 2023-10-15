@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+dir=$(dirname "${0}")
+. "${dir}/fun.sh"
+. "${dir}/cfg.sh"
+
+del_ubr "${br}" "${uplink_dev}"

@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+dir=$(dirname "${0}")
+. "${dir}/fun.sh"
+. "${dir}/cfg.sh"
+
+# create bridge with uplink and self vlan
+add_ubr "${br}" "${uplink_dev}" "${br_self_vlan}"
+
+# add tagged vlans info to uplink
+# uplink_vlans add "${uplink_dev}" "${vlans}"
+# uplink_vlans del "${uplink_dev}" "${vlans}"
+
+# add tuntaps to each vlan for testing
+#tuntaps add "${br}" "${vlans}" 2 user aabb0
+#tuntaps del "${br}" "${vlans}"
