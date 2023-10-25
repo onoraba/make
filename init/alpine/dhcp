@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+dir=/etc/void
+. "${dir}/fun.sh"
+. "${dir}/cfg.sh"
+
+# not runit, can't just exit, service will be marked as crashed
+# so waiting for bridge dev
+sleep_step="1"
+while true; do
+dev_exist "${br}" && break
+sleep "${sleep_step}"; done
+
+# waiting for bridge link up
+while true; do
+ip -br link show "${br}" | grep -q DOWN || break
+sleep "${sleep_step}"; done
+
+ip -6 addr flush dev "${br}" # fck ipv6
+
+dhcpcd -f /dev/null -B --ipv4only --noipv4ll "${br}"

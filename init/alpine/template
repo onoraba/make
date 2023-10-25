@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+dir="/etc/void"
+command="${dir}/${RC_SVCNAME}"
+command_background=true
+pidfile="/var/run/${RC_SVCNAME}.pid"
+
+stop() {
+ pkill -P $(cat "${pidfile}") || exit 0 # crash recovery
+}
+
+stop_post() {
+ "${dir}/no${RC_SVCNAME}"
+}

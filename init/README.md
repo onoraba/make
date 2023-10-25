@@ -22,13 +22,28 @@ vlans=212,215,2-5 # comma separated, could be ranges
 cp -r void/bridge /etc/sv
 ln -s /etc/sv/bridge /var/service
 ```
+## dhcp
+```
+cp -r void/dhcp /etc/sv
+ln -s /etc/sv/dhcp /var/service
+```
 
 # openrc on alpine
 ## bridge
 ```
 cp void/bridge/run /etc/void/bridge
 cp void/bridge/finish /etc/void/nobridge
-cp alpine/bridge /etc/init.d
+cp alpine/template /etc/init.d/bridge
 rc-update add bridge
 rc-service bridge start
+```
+## dhcp
+```
+apk add dhcpcd
+cp alpine/template /etc/init.d/dhcp
+echo 'depend() { need bridge; }' >> /etc/init.d/dhcp
+cp alpine/dhcp /etc/void/
+cp void/dhcp/finish /etc/void/nodhcp
+rc-update add dhcp
+rc-service dhcp start
 ```
