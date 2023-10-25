@@ -6,8 +6,14 @@ group=$(user)
 tmp=/home/$(user)/arcan
 as_user=chpst -u $(user):$(group) -U $(user):$(group)
 
-arcan: | get clone_ext cmake make install
+arcan: | get clone_ext cmake make install durden
 	@exit 0
+
+durden:
+	@$(as_user) git clone --depth 1 https://github.com/letoram/durden $(tmp)/durden
+	@cp -r $(tmp)/durden/durden $(dir)/usr/local/share/arcan/appl/
+	@install -m 755 $(tmp)/durden/distr/durden /usr/bin/durden
+	@sed -i 's|/usr/share/$$applname|$(dir)/usr/local/share/arcan/appl|' /usr/bin/durden
 
 get:
 	@$(as_user) git clone --depth 1 https://github.com/letoram/arcan $(tmp)
