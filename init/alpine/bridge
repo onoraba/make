@@ -1,14 +1,14 @@
 #!/sbin/openrc-run
 
-command="/etc/void/bridge"
+dir="/etc/void"
+command="${dir}/bridge"
 command_background=true
 pidfile="/var/run/bridge.pid"
 
 stop() {
- pkill -P $(cat /var/run/bridge.pid)
+ pkill -P $(cat "${pidfile}")
 }
 
 stop_post() {
- /etc/void/nobridge
+ "${dir}/nobridge"
 }
-
