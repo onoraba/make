@@ -1,7 +1,0 @@
-#!/usr/bin/env sh
-
-srv=$(basename ${PWD})
-dev=$(echo ${srv} | cut -d '_' -f2)
-
-ip -br link show dev ${dev} && \
-exec dhcpcd -B ${dev} 1>&2 || exit 1
