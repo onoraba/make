@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+dir=/etc/void
+. "${dir}/fun.sh"
+. "${dir}/cfg.sh"
+
+dev_exist ${br} || exit 0
+ip -4 addr flush ${br}

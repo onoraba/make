@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+dir=/etc/void
+. "${dir}/fun.sh"
+. "${dir}/cfg.sh"
+
+dev_exist ${br} || exit 1
+ip -6 addr flush ${br} # fck ipv6
+dhcpcd -f /dev/null -B --ipv4only --noipv4ll ${br}
