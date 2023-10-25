@@ -18,4 +18,7 @@ sleep "${sleep_step}"; done
 
 ip -6 addr flush dev "${br}" # fck ipv6
 
-dhcpcd -f /dev/null -B --ipv4only --noipv4ll "${br}"
+dhcpcd -f /dev/null -B --ipv4only --noipv4ll \
+--option domain_name_servers \
+--script /usr/lib/dhcpcd/dhcpcd-run-hooks \
+--nohook test,hostname,ntp.conf "${br}"
