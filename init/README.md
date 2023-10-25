@@ -47,3 +47,11 @@ cp void/dhcp/finish /etc/void/nodhcp
 rc-update add dhcp
 rc-service dhcp start
 ```
+## lbu add
+```
+lbu add /etc/void/
+lbu add /etc/init.d/dhcp
+lbu add /etc/init.d/bridge
+mount -o remount,rw /media/cfg
+lbu commit
+```
