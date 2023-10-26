@@ -4,6 +4,7 @@ dir=/opt/arcan
 user=user
 group=$(user)
 tmp=/home/$(user)/arcan
+# apk add runit for chpst
 as_user=chpst -u $(user):$(group) -U $(user):$(group)
 
 arcan: | build_pkgs get clone_ext cmake make install durden run_pkgs
