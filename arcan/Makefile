@@ -45,4 +45,4 @@ clean:
 	-@rm -rf $(dir)
 
 # void build pkgs
-# wayland wayland-devel wayland-protocols MesaLib-devel ffmpeg-devel file-devel freetype-devel liblzma-devel libopenal-devel libusb-devel libvncserver-devel libxkbcommon-devel sqlite-devel vlc-devel SDL2-devel xcb-util-devel xcb-util-wm-devel mupdf-devel harfbuzz-devel jbig2dec-devel gumbo-parser-devel libopenjpeg2-devel libespeak-ng-devel tesseract-ocr-devel pkgconf cmake
+# wayland wayland-devel wayland-protocols MesaLib-devel ffmpeg-devel file-devel freetype-devel liblzma-devel libopenal-devel libusb-devel libvncserver-devel libxkbcommon-devel sqlite-devel vlc-devel SDL2-devel xcb-util-devel xcb-util-wm-devel mupdf-devel harfbuzz-devel jbig2dec-devel gumbo-parser-devel libopenjpeg2-devel libespeak-ng-devel tesseract-ocr-devel leptonica-devel pkgconf cmake
