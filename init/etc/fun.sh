@@ -5,7 +5,7 @@ devs() {
  find /sys/class/net \
  -mindepth 1 \
  -maxdepth 1 \
- -lname '*virtual*' \
+ -follow -name '*virtual*' \
  -prune -o \
  -exec sh -c "test -d {}/wireless && echo {},wifi || echo {},eth" \;
 }
