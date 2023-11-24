@@ -5,7 +5,7 @@ On alpine and void linux via openrc and runit.
 
 # settings
 Init scripts require dir /etc/void to exist.
-It must contain what inside etc dir here.
+It must contain what inside ```etc``` dir here.
 Shell funtions in ```fun.sh```, and variables
 for scripts in ```cfg.sh```:
 ```
@@ -29,6 +29,7 @@ ln -s /etc/sv/dhcp /var/service
 ```
 
 # openrc on alpine
+
 ## bridge
 ```
 cp void/bridge/run /etc/void/bridge
@@ -54,4 +55,20 @@ lbu add /etc/init.d/dhcp
 lbu add /etc/init.d/bridge
 mount -o remount,rw /media/cfg
 lbu commit
+```
+# caveats
+In case of network boot with vlans, the whole chain must support them.
+Didn't saw vlans in x86 desktop bios settings for pxe.
+Tho servers usually support vlans on netboot.
+Next be vlans in rpieeprom, uboot, ipxe, initrd, etc.
+
+Easy way is to run ethernet ports in dual-mode from switches perspective.
+Normal boot then tagged traffic, which brings some issues.
+Dual-mode vlan_id only works in untagged manner, so
+```
+bridge vlan add dev eth0 vid 202 tagged master
+```
+becomes
+```
+bridge vlan add dev eth0 vid 202 pvid untagged master
 ```
