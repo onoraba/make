@@ -1,24 +1,44 @@
-#!/usr/bin/env sh
+#!/sbin/openrc-run
 
-dir=/etc/void
-. "${dir}/fun.sh"
-. "${dir}/cfg.sh"
+. /etc/void/fun.sh || exit 1
+. /etc/void/cfg.sh || exit 1
 
-# not runit, can't just exit, service will be marked as crashed
-# so waiting for bridge dev
-sleep_step="1"
-while true; do
-dev_exist "${br}" && break
-sleep "${sleep_step}"; done
+depend() {
+ need bridge
+}
 
-# waiting for bridge link up
-while true; do
-ip -br link show "${br}" | grep -q DOWN || break
-sleep "${sleep_step}"; done
+start() {
+ ebegin "starting dhcpcd"
+ sleep_step="2"
 
-ip -6 addr flush dev "${br}" # fck ipv6
+ # wait for bridge dev
+ while ! dev_exist "${br}"; do
+ echo "dhcp: no ${br} dev exist"
+ sleep "${sleep_step}"; done
 
-dhcpcd -f /dev/null -B --ipv4only --noipv4ll \
+ # and link on it
+ while ip -br link show "${br}" | grep -q DOWN; do
+ echo "dhcp: no link on ${br}"
+ sleep "${sleep_step}"; done
+
+ ip -6 addr flush dev "${br}" # fck ipv6
+
+ dhcpcd -f /dev/null -b --ipv4only --noipv4ll \
 --option domain_name_servers \
 --script /usr/lib/dhcpcd/dhcpcd-run-hooks \
 --nohook test,hostname,ntp.conf "${br}"
+
+ eend $?
+}
+
+stop() {
+ ebegin "killing dhcpcd"
+  pkill dhcpcd || exit 0 # crash recovery
+ eend $?
+}
+
+stop_post() {
+ ebegin "flushing ip address"
+  dev_exist "${br}" && ip -4 addr flush "${br}"
+ eend $?
+}
