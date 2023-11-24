@@ -48,16 +48,15 @@ add_ubr() {
  ip link set "${dev}" master "${name}"
 
  # tagged vlan on dev
- bridge vlan add dev "${dev}" vid "${vlan}" tagged master
+ bridge vlan add dev "${dev}" vid "${vlan}" pvid master
 
  # enable vlan_filtering
- ip link set dev "${name}" type bridge vlan_filtering 1
-
- # removing default vlan 1 and adding choosed one
- # as untagged on bridge itself
- bridge vlan del dev "${name}" vid 1 self
- bridge vlan del dev "${dev}" vid 1 untagged
- bridge vlan add dev "${name}" vid "${vlan}" self pvid untagged
+ ip link set dev "${name}" type bridge \
+  vlan_filtering 1 \
+  vlan_default_pvid "${vlan}" \
+  nf_call_iptables 0 \
+  nf_call_arptables 0 \
+  stp_state 0
 
  # link up bridge
  ip link set up dev "${name}"
