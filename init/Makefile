@@ -23,10 +23,7 @@ alpine_bridge:
 alpine_dhcp:
 	-@apk update
 	@apk add dhcpcd
-	@install -m 755 alpine/template /etc/init.d/dhcp
-	@echo 'depend() { need bridge; }' >> /etc/init.d/dhcp
-	@install -m 755 alpine/dhcp $(dir)/dhcp
-	@install -m 755 void/dhcp/finish $(dir)/nodhcp
+	@install -m 755 alpine/dhcp /etc/init.d/dhcp
 	@rc-update add dhcp $(runlevel)
 	@echo alpine_dhcp
 
