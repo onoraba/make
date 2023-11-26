@@ -1,0 +1,22 @@
+#!/sbin/openrc-run
+# apk add nfs-utils
+
+. /etc/void/cfg.sh || exit 1
+
+start() {
+ ebegin "NFS mount"
+
+  while test -z "$(ip -br addr show | sed 's/  */ /g' | grep ${br} | cut -d ' ' -f3)"; do
+   echo nfsmount: no ip on out
+   sleep 2
+  done
+
+  mount -a -t nfs4
+ eend $?
+}
+
+stop() {
+ ebegin "NFS unmount"
+  umount -a -t nfs4
+ eend $?
+}
