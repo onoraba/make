@@ -1,6 +1,7 @@
 #!/sbin/openrc-run
 # apk add nfs-utils
 
+. /etc/void/fun.sh || exit 1
 . /etc/void/cfg.sh || exit 1
 
 start() {
