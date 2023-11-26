@@ -14,9 +14,7 @@ fun_cfg:
 	@install -m 755 etc/fun.sh etc/cfg.sh $(dir)
 
 alpine_bridge:
-	@install -m 755 void/bridge/run $(dir)/bridge
-	@install -m 755 void/bridge/finish $(dir)/nobridge
-	@install -m 755 alpine/template /etc/init.d/bridge
+	@install -m 755 alpine/bridge /etc/init.d/bridge
 	@rc-update add bridge $(runlevel)
 	@echo alpine_bridge
 

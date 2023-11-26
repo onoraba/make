@@ -1,0 +1,17 @@
+#!/sbin/openrc-run
+
+. /etc/void/fun.sh || exit 1
+. /etc/void/cfg.sh || exit 1
+
+start() {
+ ebegin "making bridge ${br} with uplink ${uplink_dev}"
+ add_ubr "${br}" "${uplink_dev}" "${br_self_vlan}" && \
+ uplink_vlans add "${uplink_dev}" "${vlans}"
+ eend $?
+}
+
+stop() {
+ ebegin "removing bridge ${br}"
+ del_ubr "${br}" "${uplink_dev}"
+ eend $?
+}
