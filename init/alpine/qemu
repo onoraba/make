@@ -1,0 +1,51 @@
+#!/sbin/openrc-run
+
+. /etc/void/fun.sh && . /etc/void/cfg.sh ||
+ exit 1
+
+vlan=1
+tt=${RC_SVCNAME}
+id=e7ea048d-bda1-4444-bec1-d35cfb57360d
+
+command="/etc/void/qemu"
+command_args="labs 100 b"
+command_user="user:user"
+
+depend() {
+ need nfsmount
+}
+
+start_pre() {
+ ebegin "tuntap ${RC_SVCNAME} creation"
+ ip tuntap add name ${tt} mode tap user ${user}
+ ip link set dev ${tt} up
+ ip link set dev ${tt} master ${br}
+
+ bridge vlan del dev ${tt} vid ${br_self_vlan}
+ bridge vlan add dev ${tt} vid ${vlan} pvid untagged master
+ eend $?
+
+ ebegin "waiting for nfs share"
+ while ! grep -q vios /proc/mounts; do
+  echo "${RC_SVCNAME} nfs not mounted"
+  sleep 2
+ done
+ eend $?
+}
+
+stop() {
+ ebegin "sending quit to ${RC_SVCNAME} vm monitor, id ${id}"
+ echo "quit" | socat UNIX-CONNECT:"/tmp/${RC_SVCNAME}_mon.sock" - | tail -n +3 || exit 0
+ eend $?
+}
+
+stop_post() {
+ ebegin "killing qemu ${RC_SVCNAME} proc, if still runnning"
+ test -n "$(pgrep -f ${id})" && sleep 10 && \
+ test -n "$(pgrep -f ${id})" && pkill -f "${id}"
+ eend $?
+
+ ebegin "removing tuntap ${tt}"
+ ip link del dev ${tt} || exit 0
+ eend $?
+}

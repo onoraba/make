@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+
+pet="${1:-virt}"
+vlan="${2:-1}"
+background="${3:-false}"
+
+case ${background} in
+ b|true) opts="-daemonize"
+  mon="-chardev socket,id=monitor,path="/tmp/${pet}_mon.sock",server=on,wait=off -monitor chardev:monitor"
+  con="-chardev socket,id=serial0,path="/tmp/${pet}_con.sock",server=on,wait=off -serial chardev:serial0"
+ ;;
+ openrc) opts=""
+  mon="-chardev socket,id=monitor,path="/tmp/${pet}_mon.sock",server=on,wait=off -monitor chardev:monitor"
+  con="-chardev socket,id=serial0,path="/tmp/${pet}_con.sock",server=on,wait=off -serial chardev:serial0"
+ ;;
+ *) opts=""; con=""; mon="-serial mon:stdio" ;;
+esac
+
+#echo "$pet $vlan $background $args"
+
+qemu-system-x86_64 \
+ -nodefaults \
+ -display none \
+ -device virtio-vga \
+ -spice port=3000,disable-ticketing=on \
+ -machine pc,usb=off,smbus=off,dump-guest-core=off,vmport=off,acpi=on \
+ -cpu kvm64 \
+ -smp 4 \
+ -m 1024M \
+ -accel kvm \
+ -global ICH9-LPC.disable_s3=1 \
+ -global ICH9-LPC.disable_s4=1 \
+ -rtc base=localtime,clock=vm \
+ -name "${pet}" \
+ -uuid $(uuidgen) \
+ -netdev tap,id=net,ifname="${pet}",script=no,downscript=no \
+ -device virtio-net-pci,netdev=net,romfile=,mac=AA:BB:F0:02:00:01 \
+ -blockdev driver=file,node-name=disk,filename="/u2/vm/disks/${pet}.qcow2",locking=off \
+ -blockdev driver=qcow2,node-name=root,file=disk,overlap-check=none \
+ -device virtio-blk-pci,drive=root \
+ -snapshot ${opts} ${con} ${mon}
