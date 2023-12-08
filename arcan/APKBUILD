@@ -1,0 +1,58 @@
+# Contributor: user@localhost
+# Maintainer: user@localhost
+pkgname=arcan
+pkgver=6.2
+pkgrel=0
+pkgdesc="desktop engine"
+options="!check"
+url="https://divergent-desktop.org"
+arch="x86 x86_64 aarch64"
+license="void"
+makedepends="openssl-dev>3 readline-dev linux-headers"
+checkdepends="bash"
+#subpackages="$pkgname-doc $pkgname-scripts"
+source="$pkgname-$pkgver.tgz"
+srcdir="$startdir"
+
+giturl="https://github.com/letoram/arcan"
+
+snapshot() {
+ test -e $startdir/$pkgname-$pkgver.tgz && return 0
+ cd "${SRCDEST:-$srcdir}" || return 1 # default /var/cache/distfiles
+ test -d $pkgname && rm -rf $pkgname # clone every time
+ git clone --depth 1 $giturl -o $pkgname || return 1
+ $pkgname/external/git/clone.sh # get external
+ sed -i $pkgname/src/a12/CMakeLists.txt -e '/set(LIBRARIES/ a\\tfts' # fts fix
+ install -m 755 -d $pkgname/build
+ mv $pkgname $pkgname-$pkgver
+ tar cfz $startdir/$pkgname-$pkgver.tgz $pkgname-$pkgver && \
+ rm -rf $pkgname-$pkgver
+}
+
+package() {
+	echo make DESTDIR="$pkgdir" install
+	echo DESTDIR="$pkgdir" cmake --install build
+}
+
+unpack() {
+ tar xfz "$source"
+}
+
+build() {
+ chdir $srcdir
+ if [ "$CBUILD" != "$CHOST" ]; then
+  CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+ fi
+ export CFLAGS="-Os -DDEBUG" # or warning: '-Wformat-security' ignored without '-Wformat'
+ # cause /usr/share/abuild/default.conf
+ cmake -B $pkgname-$pkgver/build \
+  -S $pkgname-$pkgver/src \
+  -DBUILD_PRESET="everything" \
+  -DCMAKE_INSTALL_PREFIX="/usr" \
+  $CMAKE_CROSSOPTS
+ make -C $pkgname-$pkgver/build
+}
+
+sha512sums="
+849f6d863b4e5d021aed0956703cf79a7c3356271b7ba0765e6b58bd0b87c809cd76198aab40cdf5fd8dabf083ef5de2edbf47f7125c482b0f9803f6792b0a15  arcan-6.2.tgz
+"
