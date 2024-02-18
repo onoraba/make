@@ -1,17 +1,16 @@
 # Maintainer: user <user@local.host>
 pkgname=arcan
-pkgver=0.6.2
+pkgver=0.6.7
 pkgrel=0
 pkgdesc="desktop engine"
-options="suid"
+options="suid !strip"
 url="https://divergent-desktop.org"
 arch="x86 x86_64 aarch64"
 license="void"
 subpackages="$pkgname-doc"
 checkdepends="bash"
-#srcdir="$startdir"
-source="$pkgname-$pkgver.tgz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname.tgz"
+builddir="$srcdir/$pkgname"
 makedepends="
 	cmake
 	pkgconf
@@ -44,18 +43,19 @@ makedepends="
 	"
 giturl="https://github.com/letoram/arcan"
 
+export CFLAGS="${CFLAGS/-Werror=format-security/}"
+
 snapshot() {
- git clone --depth 1 $giturl "/tmp/$pkgname-$pkgver"
- "/tmp/$pkgname-$pkgver/external/git/clone.sh"
- sed -i "/tmp/$pkgname-$pkgver/src/a12/CMakeLists.txt" -e '/set(LIBRARIES/ a\\tfts' # fts fix
- install -m 755 -d "/tmp/$pkgname-$pkgver/build"
- cd /tmp
- tar cfz "$startdir/$pkgname-$pkgver.tgz" "$pkgname-$pkgver"
- rm -rf "/tmp/$pkgname-$pkgver"
+ local _arcan=$(mktemp -d)
+ git clone --depth 1 $giturl "$_arcan"
+ "$_arcan/external/git/clone.sh"
+ sed -i "$_arcan/src/a12/CMakeLists.txt" -e '/set(LIBRARIES/ a\\tfts' # fts fix
+ install -m 755 -d "$_arcan/build"
+ tar -zcf "$startdir/$pkgname.tgz" --transform "s|${_arcan:1}|arcan|" "$_arcan"
+ rm -rf "$_arcan"
 }
 
 build() {
- export CFLAGS="-Wno-error"
  cmake -B "$builddir/build" -S "$builddir/src" -DBUILD_PRESET="everything" -DCMAKE_INSTALL_PREFIX="/usr"
  make -j$(nproc) -C "$builddir/build"
 }
@@ -65,5 +65,5 @@ package() {
 }
 
 sha512sums="
-ef317b90ceb3e5269a032f7ebf564d15678f7b95830ff89e499279dc0bc43f98ec399d2bd9aa215fcf380f33012cb32c9819df135ca731aaee38f223c08b37f5  arcan-0.6.2.tgz
+111736e8e2d1f7e52fd145c3bbfad1635b89cee46224b54e26925cbc4fe6c42cbd8f9d4dffb8115e40a44918b3f027b51dfb5e368dbdd5511ae5eae3e3455506  arcan.tgz
 "
