@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+start() {
+ ebegin "starting openssl ocsp"
+ set -o pipefail
+ /usr/bin/openssl ocsp \
+  -index /tmp/index \
+  -port 8000 \
+  -rsigner /tmp/test.crt \
+  -rkey /tmp/test.key \
+  -CA /tmp/ca.crt \
+  -ignore_err -text -timeout 5 2>&1 | logger &
+ eend $rc
+}
+
+stop() {
+ ebegin "killing openssl ocsp"
+  pkill -f "openssl ocsp" || exit 0 # crash recovery
+ eend $?
+}
