@@ -1,0 +1,17 @@
+#!/sbin/openrc-run
+# local pty for nut upsd
+remote="tcp:10.200.12.2:4196"
+command="/usr/bin/socat"
+command_args="pty,link=/dev/${RC_SVCNAME},raw ${remote}"
+command_background=true
+pidfile="/var/run/${RC_SVCNAME}"
+
+stop() {
+ ebegin "Stopping socat bridge /dev/${RC_SVCNAME} -> ${remote}"
+ pkill -F "${pidfile}"
+ eend $?
+}
+
+start_post() {
+ /bin/chmod 660 "$(readlink /dev/${RC_SVCNAME})"
+}
