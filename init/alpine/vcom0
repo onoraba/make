@@ -1,12 +1,15 @@
 #!/sbin/openrc-run
 # permanent pty for nut upsd
+remote="tcp:10.200.12.2:4196,forever"
+svc="$(echo ${RC_SVCNAME} | cut -d'-' -f1 | cut -d'_' -f1)"
+
 command="/usr/bin/socat"
-command_args="pty,link=/dev/${RC_SVCNAME},raw,crnl pty,link=/dev/${RC_SVCNAME}t,raw,crnl"
+command_args="pty,link=/dev/${RC_SVCNAME},raw,unlink-close=0 ${remote}"
 command_background=true
 pidfile="/var/run/${RC_SVCNAME}"
 
 stop() {
- ebegin "Stopping socat bridge /dev/${RC_SVCNAME} -> /dev/${RC_SVCNAME}t"
+ ebegin "Stopping socat bridge /dev/${RC_SVCNAME} -> ${remote}"
  pkill -F "${pidfile}"
  eend $?
 }
