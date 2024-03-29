@@ -1,5 +1,6 @@
 #!/sbin/openrc-run
 # permanent pty for nut upsd
+# must be synchronous = yes in ups.conf
 
 command="/usr/bin/socat"
 command_args="pty,link=/dev/${RC_SVCNAME}t,rawer pty,link=/dev/${RC_SVCNAME},rawer"
@@ -13,5 +14,6 @@ stop() {
 }
 
 start_post() {
+ # make nut the owner
  /bin/chmod 660 -- $(readlink "/dev/${RC_SVCNAME}")
 }
