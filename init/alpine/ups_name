@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+# nut to rsyslog
+
+ups="$(echo ${RC_SVCNAME} | cut -d'_' -f2)"
+
+command="sh"
+command_args="-c \"while true; do upsc ${ups}@localhost 2> /dev/null | grep -E '^(ups\.(load|status|model|serial|tempreture)|input\.(voltage|quality|frequency)(\.(maximum|minimum))*|battery\.(charge|voltage|runtime)(\.restart)*):' | sed -e 's/: /=/' | tr '\n' ',' | sed 's/,$//' | logger --server 127.0.0.1 --port 2006 --tag ${ups} --udp; sleep 2; done\""
+command_background=true
+pidfile="/var/run/${RC_SVCNAME}"
+
+depend() {
+ need nut-upsd rsyslog
+}
+
+stop() {
+ ebegin "Stopping ups telemetry for ${ups}"
+ pkill -g "$(cat ${pidfile})" || exit 0
+ eend $?
+}
