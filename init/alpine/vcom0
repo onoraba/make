@@ -14,6 +14,6 @@ stop() {
 }
 
 start_post() {
- # make nut the owner
+ # nut user need to be in tty group to have write perms
  /bin/chmod 660 -- $(readlink "/dev/${RC_SVCNAME}")
 }
